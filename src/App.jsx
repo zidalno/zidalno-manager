@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, ChevronDown, Trophy, Flame, Wallet, ArrowRight, Users, Briefcase, ArrowUpRight, ArrowDownRight, AlertCircle, PlusCircle, X, BookOpen, ShieldCheck, TrendingUp, Banknote, RefreshCw, Trash2, Clock, Eye, EyeOff, Filter, TrendingDown } from 'lucide-react';
 
 // --- 🔑 CONFIGURATION API ---
-const FMP_API_KEY = 'YM7SZndpQ1iCTvxRpyBIC5R9GeNv3XHW'; // Ta clé API récupérée
+const FMP_API_KEY = 'YM7SZndpQ1iCTvxRpyBIC5R9GeNv3XHW';
 
 const APP_CONFIG = {
   title: "ZIDALNO MANAGER",
