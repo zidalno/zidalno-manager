@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, ChevronDown, Trophy, Flame, Wallet, ArrowRight, Users, Briefcase, ArrowUpRight, ArrowDownRight, AlertCircle, PlusCircle, X, BookOpen, ShieldCheck, TrendingUp, Banknote, RefreshCw, Trash2, Clock, Eye, EyeOff, Filter, TrendingDown } from 'lucide-react';
 
 // --- 🔑 CONFIGURATION API ---
-const FMP_API_KEY = 'YM7SZndpQ1iCTvxRpyBIC5R9GeNv3XHW';
+const FMP_API_KEY = 'YM7SZndpQ1iCTvxRpyBIC5R9GeNv3XHW'; // Ta clé API récupérée
 
 const APP_CONFIG = {
   title: "ZIDALNO MANAGER",
@@ -20,7 +20,7 @@ const ETF_DB = [
 
 const CAC40_TICKERS = ["AC.PA", "AI.PA", "AIR.PA", "ALO.PA", "MT.AS", "BN.PA", "BNP.PA", "BOU.PA", "CAP.PA", "CA.PA", "ACA.PA", "CS.PA", "GLE.PA", "DG.PA", "EL.PA", "ENGI.PA", "ERF.PA", "RMS.PA", "KER.PA", "OR.PA", "LR.PA", "MC.PA", "ML.PA", "ORA.PA", "RI.PA", "PUB.PA", "RNO.PA", "SAF.PA", "SGO.PA", "SAN.PA", "SU.PA", "STMPA.PA", "TEP.PA", "HO.PA", "TTE.PA", "URW.AS", "VIE.PA", "VIV.PA", "WLN.PA"];
 
-const SP500_TOP100_TICKERS = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "BRK.B", "JPM", "JNJ", "V", "PG", "UNH", "HD", "MA", "BAC", "LLY", "XOM", "CVX", "AVGO", "KO", "PEP", "COST", "WMT", "ADBE", "CRM", "NFLX", "PFE", "MRK", "MCD", "CSCO", "ABT", "TMO", "ACN", "DIS", "WFC", "ORCL", "DHR", "INTC", "QCOM", "TXN", "NKE", "AMD", "UNP", "LIN", "UPS", "PM", "CAT", "LOW", "NEE", "GS", "HON", "IBM", "MDT", "RTX", "SBUX", "GE", "C", "AMGN", "BLK", "BA", "DE", "T", "SPGI", "MMM", "AXP", "MS", "GILD", "PYPL", "ISRG", "ADP", "NOW", "CVS", "BKNG", "TJX", "TGT", "ZTS", "AMT", "LMT", "FISV", "MO", "USB", "PNC", "CI", "VRTX", "BDX", "ADI", "SO", "FIS", "GM", "FDX", "ETN", "DUK", "SYK"];
+const SP500_TOP100_TICKERS = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "BRK-B", "JPM", "JNJ", "V", "PG", "UNH", "HD", "MA", "BAC", "LLY", "XOM", "CVX", "AVGO", "KO", "PEP", "COST", "WMT", "ADBE", "CRM", "NFLX", "PFE", "MRK", "MCD", "CSCO", "ABT", "TMO", "ACN", "DIS", "WFC", "ORCL", "DHR", "INTC", "QCOM", "TXN", "NKE", "AMD", "UNP", "LIN", "UPS", "PM", "CAT", "LOW", "NEE", "GS", "HON", "IBM", "MDT", "RTX", "SBUX", "GE", "C", "AMGN", "BLK", "BA", "DE", "T", "SPGI", "MMM", "AXP", "MS", "GILD", "PYPL", "ISRG", "ADP", "NOW", "CVS", "BKNG", "TJX", "TGT", "ZTS", "AMT", "LMT", "FISV", "MO", "USB", "PNC", "CI", "VRTX", "BDX", "ADI", "SO", "FIS", "GM", "FDX", "ETN", "DUK", "SYK"];
 
 const EXTRA_GEMS = ["ASML", "NVO", "TSM", "RACE"];
 
@@ -160,10 +160,24 @@ export default function ZidalnoManagerApp() {
     }
 
     try {
-      const quoteRes = await fetch(`https://financialmodelingprep.com/api/v3/quote/${ALL_TICKERS.join(',')}?apikey=${FMP_API_KEY}`);
-      const quotes = await quoteRes.json();
+      // --- CORRECTION BATCHING POUR EVITER ERREUR 403 ---
+      const chunkSize = 50; // Max 50 tickers par appel
+      const chunks = [];
+      for (let i = 0; i < ALL_TICKERS.length; i += chunkSize) {
+        chunks.push(ALL_TICKERS.slice(i, i + chunkSize));
+      }
+
+      let allQuotes = [];
+
+      for (const chunk of chunks) {
+        const res = await fetch(`https://financialmodelingprep.com/api/v3/quote/${chunk.join(',')}?apikey=${FMP_API_KEY}`);
+        if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
+        const data = await res.json();
+        allQuotes = [...allQuotes, ...data];
+      }
+      // ---------------------------------------------------
       
-      const mappedData = quotes.map(q => {
+      const mappedData = allQuotes.map(q => {
         const country = CAC40_TICKERS.includes(q.symbol) ? 'FR' : 'US';
         const ovr = Math.min(99, Math.max(70, Math.floor(75 + (q.changesPercentage || 0) * 2)));
         
@@ -189,13 +203,17 @@ export default function ZidalnoManagerApp() {
         };
       });
       
-      const newCache = { data: mappedData, timestamp: now.toISOString() };
+      const newCache = {  mappedData, timestamp: now.toISOString() };
       localStorage.setItem('zidalno_players_cache', JSON.stringify(newCache));
       setPlayersData(mappedData);
       setLastUpdate(now);
 
     } catch (error) {
       console.error("Erreur API FMP:", error);
+      if (cachedData.data) {
+         setPlayersData(cachedData.data); // Fallback sur cache si erreur
+         alert("Mise à jour échouée (Limite API). Données en cache affichées.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -517,7 +535,7 @@ export default function ZidalnoManagerApp() {
               </div>
               
               {isLoading ? 
-                <div className="text-center py-20 text-slate-500">Chargement des données du marché...</div> : 
+                <div className="text-center py-20 text-slate-500 animate-pulse">Chargement des données... (Cela peut prendre quelques secondes)</div> : 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {filteredPlayers.map(player => (
                     <FutCard 
