@@ -1,62 +1,35 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Calculator, ChevronDown, Trophy, Flame, Wallet, RotateCw, ArrowRight, Users, Briefcase, ArrowUpRight, ArrowDownRight, AlertCircle, PlusCircle, X, BookOpen, ShieldCheck, TrendingUp, Banknote, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Search, ChevronDown, Trophy, Flame, Wallet, ArrowRight, Users, Briefcase, ArrowUpRight, ArrowDownRight, AlertCircle, PlusCircle, X, BookOpen, ShieldCheck, TrendingUp, Banknote, RefreshCw, Trash2, Clock, Eye, EyeOff, Filter, TrendingDown } from 'lucide-react';
 
-// --- CONFIGURATION ---
+// --- 🔑 CONFIGURATION API ---
+const FMP_API_KEY = 'YM7SZndpQ1iCTvxRpyBIC5R9GeNv3XHW';
+
 const APP_CONFIG = {
   title: "ZIDALNO MANAGER",
-  version: "V9 • Market Leaders",
-  lastUpdate: "Live Simulation"
+  version: "V13 • Manager Edition",
+  lastUpdate: "Live Data"
 };
 
-// --- DONNÉES DE RÉFÉRENCE (DATABASE) ---
+// --- 📊 DONNÉES DE RÉFÉRENCE ---
 const ETF_DB = [
-  { id: 'wpea', ticker: 'WPEA', name: 'iShares MSCI World', price: 5.25, currency: '€', type: 'ETF' },
-  { id: 'ese', ticker: 'ESE', name: 'BNP S&P 500', price: 22.40, currency: '€', type: 'ETF' },
-  { id: 'cw8', ticker: 'CW8', name: 'Amundi MSCI World', price: 495.00, currency: '€', type: 'ETF' },
-  { id: 'paeem', ticker: 'PAEEM', name: 'Amundi MSCI Emerging', price: 23.50, currency: '€', type: 'ETF' },
-  { id: 'etz', ticker: 'ETZ', name: 'BNP Stoxx 600', price: 19.80, currency: '€', type: 'ETF' },
-  { id: 'nas', ticker: 'PUST', name: 'Amundi Nasdaq-100', price: 68.50, currency: '€', type: 'ETF' }
+  { id: 'wpea', ticker: 'WPEA.PA', name: 'iShares MSCI World', price: 5.93, currency: '€', type: 'ETF' },
+  { id: 'ese', ticker: 'ESE.PA', name: 'BNP S&P 500', price: 22.40, currency: '€', type: 'ETF' },
+  { id: 'cw8', ticker: 'CW8.PA', name: 'Amundi MSCI World', price: 495.00, currency: '€', type: 'ETF' },
+  { id: 'paeem', ticker: 'PAEEM.PA', name: 'Amundi MSCI Emerging', price: 23.50, currency: '€', type: 'ETF' }
 ];
 
-// --- LISTE MASSIVE ACTIONS (Simulées réalistes) ---
-const PLAYERS_DATA = [
-  // --- SECTEUR LUXE (FR) ---
-  { id: 1, ticker: 'MC', name: 'LVMH', price: 715, currency: '€', ovr: 91, position: 'LUXE', stats: { pac: 82, sho: 85, pas: 94, dri: 78, def: 88, phy: 70 }, broker: 'LCL (PEA)', country: 'FR', rarity: 'gold', comment: "Le Roi du CAC40. Indétrônable sur le long terme." },
-  { id: 4, ticker: 'RMS', name: 'HERMÈS', price: 2200, currency: '€', ovr: 92, position: 'LUXE', stats: { pac: 85, sho: 40, pas: 99, dri: 88, def: 98, phy: 50 }, broker: 'LCL (PEA)', country: 'FR', rarity: 'gold', comment: "L'excellence absolue. Valorisation toujours extrême." },
-  { id: 6, ticker: 'OR', name: 'L\'ORÉAL', price: 445, currency: '€', ovr: 86, position: 'CONS', stats: { pac: 70, sho: 75, pas: 90, dri: 65, def: 85, phy: 72 }, broker: 'LCL (PEA)', country: 'FR', rarity: 'gold', comment: "La valeur fond de portefeuille. Un peu lent actuellement." },
-  { id: 20, ticker: 'KER', name: 'KERING', price: 360, currency: '€', ovr: 75, position: 'LUXE', stats: { pac: 50, sho: 70, pas: 65, dri: 40, def: 60, phy: 85 }, broker: 'LCL (PEA)', country: 'FR', rarity: 'common', comment: "En difficulté (Gucci). Attention, c'est un pari 'Turnaround'." },
+const CAC40_TICKERS = ["AC.PA", "AI.PA", "AIR.PA", "ALO.PA", "MT.AS", "BN.PA", "BNP.PA", "BOU.PA", "CAP.PA", "CA.PA", "ACA.PA", "CS.PA", "GLE.PA", "DG.PA", "EL.PA", "ENGI.PA", "ERF.PA", "RMS.PA", "KER.PA", "OR.PA", "LR.PA", "MC.PA", "ML.PA", "ORA.PA", "RI.PA", "PUB.PA", "RNO.PA", "SAF.PA", "SGO.PA", "SAN.PA", "SU.PA", "STMPA.PA", "TEP.PA", "HO.PA", "TTE.PA", "URW.AS", "VIE.PA", "VIV.PA", "WLN.PA"];
 
-  // --- SECTEUR TECH (US/EU) ---
-  { id: 3, ticker: 'MSFT', name: 'MICROSOFT', price: 415, currency: '$', ovr: 93, position: 'TECH', stats: { pac: 88, sho: 60, pas: 98, dri: 85, def: 95, phy: 75 }, broker: 'IBKR (CTO)', country: 'US', rarity: 'icon', comment: "Le Cloud + l'IA. L'entreprise la plus solide du monde." },
-  { id: 10, ticker: 'AAPL', name: 'APPLE', price: 225, currency: '$', ovr: 90, position: 'TECH', stats: { pac: 75, sho: 55, pas: 96, dri: 80, def: 85, phy: 70 }, broker: 'IBKR (CTO)', country: 'US', rarity: 'gold', comment: "Machine à cash (Buybacks). Croissance molle mais sûre." },
-  { id: 11, ticker: 'NVDA', name: 'NVIDIA', price: 135, currency: '$', ovr: 94, position: 'CHIP', stats: { pac: 99, sho: 10, pas: 90, dri: 98, def: 85, phy: 55 }, broker: 'IBKR (CTO)', country: 'US', rarity: 'toty', comment: "Le moteur de l'IA. Volatilité extrême mais croissance folle." },
-  { id: 12, ticker: 'GOOGL', name: 'ALPHABET', price: 175, currency: '$', ovr: 89, position: 'TECH', stats: { pac: 80, sho: 20, pas: 95, dri: 85, def: 92, phy: 85 }, broker: 'IBKR (CTO)', country: 'US', rarity: 'if', comment: "Sous-valorisée par rapport à ses pairs. Monopole Search." },
-  { id: 2, ticker: 'ASML', name: 'ASML', price: 880, currency: '€', ovr: 94, position: 'TECH', stats: { pac: 96, sho: 45, pas: 99, dri: 90, def: 92, phy: 65 }, broker: 'IBKR (CTO)', country: 'NL', rarity: 'toty', comment: "Monopole technologique européen vital pour le monde." },
+const SP500_TOP100_TICKERS = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "BRK.B", "JPM", "JNJ", "V", "PG", "UNH", "HD", "MA", "BAC", "LLY", "XOM", "CVX", "AVGO", "KO", "PEP", "COST", "WMT", "ADBE", "CRM", "NFLX", "PFE", "MRK", "MCD", "CSCO", "ABT", "TMO", "ACN", "DIS", "WFC", "ORCL", "DHR", "INTC", "QCOM", "TXN", "NKE", "AMD", "UNP", "LIN", "UPS", "PM", "CAT", "LOW", "NEE", "GS", "HON", "IBM", "MDT", "RTX", "SBUX", "GE", "C", "AMGN", "BLK", "BA", "DE", "T", "SPGI", "MMM", "AXP", "MS", "GILD", "PYPL", "ISRG", "ADP", "NOW", "CVS", "BKNG", "TJX", "TGT", "ZTS", "AMT", "LMT", "FISV", "MO", "USB", "PNC", "CI", "VRTX", "BDX", "ADI", "SO", "FIS", "GM", "FDX", "ETN", "DUK", "SYK"];
 
-  // --- SECTEUR INDUSTRIE & ÉNERGIE (FR) ---
-  { id: 9, ticker: 'AI', name: 'AIR LIQUIDE', price: 175, currency: '€', ovr: 89, position: 'IND', stats: { pac: 65, sho: 85, pas: 95, dri: 60, def: 90, phy: 80 }, broker: 'LCL (PEA)', country: 'FR', rarity: 'icon', comment: "L'action préférée des français. Actions gratuites = Magie." },
-  { id: 8, ticker: 'SU', name: 'SCHNEIDER', price: 240, currency: '€', ovr: 90, position: 'ELEC', stats: { pac: 88, sho: 65, pas: 88, dri: 82, def: 80, phy: 60 }, broker: 'LCL (PEA)', country: 'FR', rarity: 'if', comment: "Au cœur de l'électrification mondiale. Très cher payé." },
-  { id: 13, ticker: 'TTE', name: 'TOTAL', price: 62, currency: '€', ovr: 82, position: 'NRJ', stats: { pac: 50, sho: 95, pas: 80, dri: 60, def: 75, phy: 90 }, broker: 'LCL (PEA)', country: 'FR', rarity: 'gold', comment: "La machine à dividendes. Peu de croissance, mais du rendement." },
-  { id: 14, ticker: 'SAF', name: 'SAFRAN', price: 210, currency: '€', ovr: 87, position: 'AERO', stats: { pac: 85, sho: 40, pas: 92, dri: 80, def: 80, phy: 75 }, broker: 'LCL (PEA)', country: 'FR', rarity: 'if', comment: "Rentes sur les moteurs d'avions. Cycle très porteur." },
-  { id: 15, ticker: 'AIR', name: 'AIRBUS', price: 145, currency: '€', ovr: 84, position: 'AERO', stats: { pac: 70, sho: 45, pas: 90, dri: 65, def: 85, phy: 80 }, broker: 'LCL (PEA)', country: 'FR', rarity: 'gold', comment: "Carnet de commandes plein pour 10 ans. Problèmes de supply chain." },
+const EXTRA_GEMS = ["ASML", "NVO", "TSM", "RACE"];
 
-  // --- SECTEUR SANTÉ & CONSO (US/EU) ---
-  { id: 11, ticker: 'NOVO', name: 'NOVO NORDISK', price: 110, currency: '€', ovr: 95, position: 'MED', stats: { pac: 98, sho: 40, pas: 95, dri: 92, def: 90, phy: 60 }, broker: 'IBKR (CTO)', country: 'DK', rarity: 'toty', comment: "Le roi de l'anti-obésité (Wegovy). Marges colossales." },
-  { id: 16, ticker: 'SAN', name: 'SANOFI', price: 95, currency: '€', ovr: 78, position: 'MED', stats: { pac: 40, sho: 88, pas: 70, dri: 45, def: 75, phy: 85 }, broker: 'LCL (PEA)', country: 'FR', rarity: 'common', comment: "Décevant en croissance, mais dividende solide." },
-  { id: 17, ticker: 'KO', name: 'COCA-COLA', price: 65, currency: '$', ovr: 83, position: 'CONS', stats: { pac: 40, sho: 90, pas: 98, dri: 50, def: 80, phy: 85 }, broker: 'IBKR (CTO)', country: 'US', rarity: 'gold', comment: "Le gardien de but. Ça ne bouge pas, ça paie des dividendes." },
-  
-  // --- SECTEUR FINANCE (US/FR) ---
-  { id: 5, ticker: 'KNSL', name: 'KINSALE', price: 380, currency: '$', ovr: 89, position: 'FIN', stats: { pac: 99, sho: 20, pas: 85, dri: 95, def: 90, phy: 80 }, broker: 'IBKR (CTO)', country: 'US', rarity: 'if', comment: "Pépite assurance de niche. Croissance à 2 chiffres." },
-  { id: 18, ticker: 'V', name: 'VISA', price: 280, currency: '$', ovr: 92, position: 'FIN', stats: { pac: 75, sho: 60, pas: 99, dri: 70, def: 95, phy: 75 }, broker: 'IBKR (CTO)', country: 'US', rarity: 'icon', comment: "Le péage de l'économie mondiale. Marges > 50%." },
-  { id: 19, ticker: 'BNP', name: 'BNP PARIBAS', price: 65, currency: '€', ovr: 76, position: 'BANK', stats: { pac: 45, sho: 92, pas: 60, dri: 50, def: 65, phy: 95 }, broker: 'LCL (PEA)', country: 'FR', rarity: 'common', comment: "Pas cher, gros rendement, mais secteur bancaire risqué." },
-  { id: 21, ticker: 'TSLA', name: 'TESLA', price: 240, currency: '$', ovr: 85, position: 'AUTO', stats: { pac: 95, sho: 0, pas: 70, dri: 99, def: 75, phy: 60 }, broker: 'IBKR (CTO)', country: 'US', rarity: 'if', comment: "Quitte ou double. Plus une boite tech/robotique qu'auto." }
-];
+const ALL_TICKERS = [...new Set([...CAC40_TICKERS, ...SP500_TOP100_TICKERS, ...EXTRA_GEMS])];
 
-const ALL_ASSETS = [...ETF_DB, ...PLAYERS_DATA.map(p => ({ ...p, type: 'Action' }))];
-
-// --- COMPOSANTS UI ---
-const FutCard = ({ player }) => {
+// --- COMPOSANT CARTE FUT ---
+const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) => {
   const [isFlipped, setIsFlipped] = useState(false);
+  
   const getCardStyle = (rarity) => {
     switch(rarity) {
       case 'toty': return "bg-gradient-to-b from-blue-600 via-blue-800 to-blue-950 text-blue-100 border-blue-400";
@@ -66,13 +39,28 @@ const FutCard = ({ player }) => {
       default: return "bg-gradient-to-b from-yellow-200 via-yellow-500 to-yellow-700 text-slate-900 border-yellow-300";
     }
   };
+  
+  const getTrendBadge = (changePercent) => {
+    if (changePercent > 2.5) return { icon: <Flame size={12}/>, color: 'bg-green-500', label: 'ON FIRE' };
+    if (changePercent > 0.5) return { icon: <ArrowUpRight size={12}/>, color: 'bg-green-400', label: 'Forme' };
+    if (changePercent < -2.5) return { icon: <TrendingDown size={12}/>, color: 'bg-red-500', label: 'COLD' };
+    if (changePercent < -0.5) return { icon: <ArrowDownRight size={12}/>, color: 'bg-red-400', label: 'Méforme' };
+    return { icon: <ArrowRight size={12}/>, color: 'bg-slate-500', label: 'Neutre' };
+  };
+  
   const style = getCardStyle(player.rarity);
   const textColor = ['icon', 'gold', 'common'].includes(player.rarity) ? 'text-slate-900' : 'text-white';
   const labelColor = ['icon', 'gold', 'common'].includes(player.rarity) ? 'text-slate-700' : 'text-slate-300';
+  const trend = getTrendBadge(player.changePercent || 0);
 
   return (
     <div onClick={() => setIsFlipped(!isFlipped)} className={`relative w-full aspect-[2/3] rounded-[1.5rem] p-1 shadow-xl cursor-pointer transform transition hover:scale-[1.02] ${style} border`}>
       <div className="h-full w-full border border-white/20 rounded-[1.3rem] p-2 flex flex-col relative overflow-hidden">
+        
+        <div className={`absolute top-1 right-1 ${trend.color} text-white rounded-full px-1.5 py-0.5 text-[8px] font-bold flex items-center gap-0.5 z-20`}>
+          {trend.icon}
+        </div>
+        
         {!isFlipped ? (
           <>
             <div className="flex justify-between items-start relative z-10">
@@ -96,10 +84,18 @@ const FutCard = ({ player }) => {
             <div className="mt-2 text-center bg-black/10 rounded py-0.5"><span className={`font-bold text-xs ${textColor}`}>{player.price} {player.currency}</span></div>
           </>
         ) : (
-          <div className="flex flex-col h-full text-center justify-center gap-2 animate-in fade-in">
+          <div className="flex flex-col h-full text-center justify-center gap-2 animate-in fade-in relative z-10">
             <div className={`text-[10px] font-bold uppercase opacity-70 ${textColor}`}>Scout Report</div>
             <p className={`text-[10px] font-medium leading-tight ${textColor}`}>"{player.comment}"</p>
             <div className="bg-white/90 text-black rounded py-1 text-xs font-bold mt-2">{player.broker}</div>
+            <div className="flex gap-2 justify-center mt-2">
+              <button onClick={(e) => { e.stopPropagation(); onAddToPortfolio(player.ticker); }} className="bg-emerald-600 text-white px-3 py-1 rounded text-xs font-bold flex items-center gap-1">
+                <PlusCircle size={12}/> Recruter
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onAddToWatchlist(player.ticker); }} className={`${isInWatchlist ? 'bg-yellow-600' : 'bg-slate-600'} text-white px-3 py-1 rounded text-xs font-bold flex items-center gap-1`}>
+                {isInWatchlist ? <EyeOff size={12}/> : <Eye size={12}/>}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -111,23 +107,132 @@ export default function ZidalnoManagerApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState('market'); 
+  const [playersData, setPlayersData] = useState([]);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [mercatoFilter, setMercatoFilter] = useState('all');
   
-  const [portfolio, setPortfolio] = useState([
-    { id: 'p1', ticker: 'WPEA', name: 'iShares MSCI World', qty: 100, avgPrice: 4.90, currentPrice: 5.25, type: 'ETF' }
-  ]);
+  const [portfolio, setPortfolio] = useState(() => {
+    const savedPortfolio = localStorage.getItem('zidalno_portfolio');
+    return savedPortfolio ? JSON.parse(savedPortfolio) : [];
+  });
+  
+  const [watchlist, setWatchlist] = useState(() => {
+    const savedWatchlist = localStorage.getItem('zidalno_watchlist');
+    return savedWatchlist ? JSON.parse(savedWatchlist) : [];
+  });
+  
+  const [etfPercentage, setEtfPercentage] = useState(() => {
+    const saved = localStorage.getItem('zidalno_target_etf');
+    return saved ? parseInt(saved) : 80;
+  });
   
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newAssetTicker, setNewAssetTicker] = useState('MC');
+  const [newAssetTicker, setNewAssetTicker] = useState('');
   const [newQty, setNewQty] = useState('');
   const [newPru, setNewPru] = useState('');
+  
+  useEffect(() => {
+    localStorage.setItem('zidalno_portfolio', JSON.stringify(portfolio));
+  }, [portfolio]);
+  
+  useEffect(() => {
+    localStorage.setItem('zidalno_watchlist', JSON.stringify(watchlist));
+  }, [watchlist]);
+  
+  useEffect(() => {
+    localStorage.setItem('zidalno_target_etf', etfPercentage.toString());
+  }, [etfPercentage]);
 
-  const [investmentAmount, setInvestmentAmount] = useState(500);
-  const [etfPercentage, setEtfPercentage] = useState(80);
-  const [search, setSearch] = useState('');
+  const fetchAllData = useCallback(async () => {
+    setIsLoading(true);
+    const cachedData = JSON.parse(localStorage.getItem('zidalno_players_cache')) || {};
+    const now = new Date();
+    const lastCacheTime = new Date(cachedData.timestamp || 0);
+    const needsRefresh = (now - lastCacheTime) > 60 * 60 * 1000; // 1h
 
+    if (Object.keys(cachedData).length > 0 && !needsRefresh) {
+      setPlayersData(cachedData.data);
+      setLastUpdate(new Date(cachedData.timestamp));
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const quoteRes = await fetch(`https://financialmodelingprep.com/api/v3/quote/${ALL_TICKERS.join(',')}?apikey=${FMP_API_KEY}`);
+      const quotes = await quoteRes.json();
+      
+      const mappedData = quotes.map(q => {
+        const country = CAC40_TICKERS.includes(q.symbol) ? 'FR' : 'US';
+        const ovr = Math.min(99, Math.max(70, Math.floor(75 + (q.changesPercentage || 0) * 2)));
+        
+        return {
+          id: q.symbol,
+          ticker: q.symbol,
+          name: q.name,
+          price: q.price,
+          changePercent: q.changesPercentage || 0,
+          currency: country === 'US' ? '$' : '€',
+          ovr: ovr,
+          position: q.exchange?.substring(0, 6) || 'MKT',
+          stats: { 
+            pac: Math.min(99, Math.floor(70 + Math.random() * 25)), 
+            sho: Math.min(99, Math.floor(60 + Math.random() * 30)), 
+            pas: Math.min(99, Math.floor(75 + Math.random() * 20)), 
+            phy: Math.min(99, Math.floor(65 + Math.random() * 25))
+          },
+          broker: country === 'FR' ? 'LCL (PEA)' : 'IBKR (CTO)',
+          country: country,
+          rarity: ovr > 90 ? 'toty' : (ovr > 85 ? 'gold' : (ovr > 80 ? 'if' : 'common')),
+          comment: `Market Cap: ${(q.marketCap / 1e9).toFixed(1)}B`
+        };
+      });
+      
+      const newCache = { data: mappedData, timestamp: now.toISOString() };
+      localStorage.setItem('zidalno_players_cache', JSON.stringify(newCache));
+      setPlayersData(mappedData);
+      setLastUpdate(now);
+
+    } catch (error) {
+      console.error("Erreur API FMP:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAllData();
+    
+    const intervalId = setInterval(() => {
+      const now = new Date();
+      const hour = now.getHours();
+      const day = now.getDay();
+      
+      if (day >= 1 && day <= 5 && hour >= 9 && hour < 23) {
+        console.log("🔄 Refresh auto des prix...");
+        fetchAllData();
+      }
+    }, 3600000);
+
+    return () => clearInterval(intervalId);
+  }, [fetchAllData]);
+
+  const removePosition = (idToRemove) => {
+    setPortfolio(portfolio.filter(pos => pos.id !== idToRemove));
+  };
+  
+  const toggleWatchlist = (ticker) => {
+    if (watchlist.includes(ticker)) {
+      setWatchlist(watchlist.filter(t => t !== ticker));
+    } else {
+      setWatchlist([...watchlist, ticker]);
+    }
+  };
+  
   const handleAddPosition = (e) => {
     e.preventDefault();
-    const assetData = ALL_ASSETS.find(a => a.ticker === newAssetTicker);
+    const assetData = playersData.find(p => p.ticker === newAssetTicker) || ETF_DB.find(e => e.ticker === newAssetTicker);
     if (!assetData) return;
 
     const newPosition = {
@@ -144,6 +249,7 @@ export default function ZidalnoManagerApp() {
     setShowAddModal(false);
     setNewQty('');
     setNewPru('');
+    setNewAssetTicker('');
   };
 
   const portfolioStats = useMemo(() => {
@@ -178,7 +284,23 @@ export default function ZidalnoManagerApp() {
     return { action: 'Attaque Trop Lourde', msg: `Vous avez trop d'actions individuelles (${(100-portfolioStats.currentEtfRatio).toFixed(0)}%). Calmez le stock picking ou renforcez le socle.`, color: 'text-orange-400' };
   }, [portfolioStats, etfPercentage]);
 
-  const filteredPlayers = PLAYERS_DATA.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).sort((a, b) => b.ovr - a.ovr);
+  const filteredPlayers = useMemo(() => {
+    let filtered = playersData.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+    
+    if (mercatoFilter === 'pepites') {
+      filtered = filtered.filter(p => p.ovr >= 85 && p.changePercent < 0);
+    } else if (mercatoFilter === 'dividendes') {
+      filtered = filtered.filter(p => p.stats.sho >= 80);
+    } else if (mercatoFilter === 'croissance') {
+      filtered = filtered.filter(p => p.stats.pac >= 85);
+    }
+    
+    return filtered.sort((a, b) => b.ovr - a.ovr);
+  }, [playersData, search, mercatoFilter]);
+
+  const watchlistPlayers = useMemo(() => {
+    return playersData.filter(p => watchlist.includes(p.ticker));
+  }, [playersData, watchlist]);
 
   if (!isAuthenticated) {
     return (
@@ -186,7 +308,7 @@ export default function ZidalnoManagerApp() {
         <div className="w-full max-w-sm text-center">
           <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4 animate-pulse" />
           <h1 className="text-3xl font-black italic text-white mb-1 tracking-tighter">ZIDALNO MANAGER</h1>
-          <p className="text-slate-500 text-xs mb-8 uppercase font-bold tracking-widest">Portfolio & Scouting OS</p>
+          <p className="text-slate-500 text-xs mb-8 uppercase font-bold tracking-widest">V13 • Manager Edition</p>
           <form onSubmit={(e) => { e.preventDefault(); if(passwordInput.toLowerCase() === 'zidalno') setIsAuthenticated(true); }} className="space-y-4">
             <input type="password" placeholder="PASSWORD" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 text-center text-white font-bold tracking-widest focus:border-yellow-500 outline-none" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} />
             <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-3 rounded-xl transition">ENTER CLUB</button>
@@ -213,15 +335,21 @@ export default function ZidalnoManagerApp() {
       </div>
 
       <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-1 text-[10px] text-yellow-500 font-bold text-center flex items-center justify-center gap-2">
-        <RefreshCw size={10} /> DONNÉES SIMULÉES (V9)
+        <Clock size={10} /> {lastUpdate ? `Dernière MAJ: ${lastUpdate.toLocaleTimeString()}` : "Chargement..."}
+        <button onClick={fetchAllData} disabled={isLoading} className="ml-2 text-yellow-300 hover:text-yellow-100 disabled:opacity-50 transition">
+          <RefreshCw size={10} className={isLoading ? 'animate-spin' : ''} />
+        </button>
       </div>
 
-      <div className="flex p-2 bg-slate-800 mx-4 mt-4 rounded-xl border border-white/5">
-        <button onClick={() => setActiveTab('market')} className={`flex-1 py-2 rounded-lg text-xs font-black uppercase flex items-center justify-center gap-2 transition ${activeTab === 'market' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5'}`}>
-          <Flame size={14} /> Marché
+      <div className="flex p-2 bg-slate-800 mx-4 mt-4 rounded-xl border border-white/5 gap-1">
+        <button onClick={() => setActiveTab('market')} className={`flex-1 py-2 rounded-lg text-xs font-black uppercase flex items-center justify-center gap-1 transition ${activeTab === 'market' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5'}`}>
+          <Flame size={12} /> Marché
         </button>
-        <button onClick={() => setActiveTab('club')} className={`flex-1 py-2 rounded-lg text-xs font-black uppercase flex items-center justify-center gap-2 transition ${activeTab === 'club' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5'}`}>
-          <Briefcase size={14} /> Mon Club
+        <button onClick={() => setActiveTab('watchlist')} className={`flex-1 py-2 rounded-lg text-xs font-black uppercase flex items-center justify-center gap-1 transition ${activeTab === 'watchlist' ? 'bg-yellow-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5'}`}>
+          <Eye size={12} /> Vestiaire
+        </button>
+        <button onClick={() => setActiveTab('club')} className={`flex-1 py-2 rounded-lg text-xs font-black uppercase flex items-center justify-center gap-1 transition ${activeTab === 'club' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5'}`}>
+          <Briefcase size={12} /> Mon Club
         </button>
       </div>
 
@@ -236,19 +364,32 @@ export default function ZidalnoManagerApp() {
                 </div>
                 <h3 className={`text-xl font-black italic mb-1 ${coachAdvice.color}`}>{coachAdvice.action}</h3>
                 <p className="text-sm text-slate-300 font-medium leading-relaxed mb-4">{coachAdvice.msg}</p>
-                <div className="bg-black/30 rounded-xl p-3 flex justify-between items-center text-xs border border-white/5">
-                  <div>
-                    <span className="text-slate-400 block mb-1 font-bold">MA COMPOSITION</span>
-                    <span className="font-black text-white text-lg">{portfolioStats.currentEtfRatio.toFixed(0)} / {(100 - portfolioStats.currentEtfRatio).toFixed(0)}</span>
-                    <span className="text-[10px] text-slate-500 block">Socle / Pépites</span>
+                <div className="bg-black/30 rounded-xl p-3 space-y-3 border border-white/5">
+                  <div className="flex justify-between items-center text-xs">
+                    <div>
+                      <span className="text-slate-400 block mb-1 font-bold">MA COMPOSITION</span>
+                      <span className="font-black text-white text-lg">{portfolioStats.currentEtfRatio.toFixed(0)} / {(100 - portfolioStats.currentEtfRatio).toFixed(0)}</span>
+                      <span className="text-[10px] text-slate-500 block">Socle / Pépites</span>
+                    </div>
+                    <ArrowRight size={14} className="text-slate-600" />
+                    <div className="text-right">
+                      <span className="text-slate-400 block mb-1 font-bold">CIBLE (TARGET)</span>
+                      <span className="font-black text-emerald-400 text-lg">{etfPercentage} / {100 - etfPercentage}</span>
+                    </div>
                   </div>
-                  <ArrowRight size={14} className="text-slate-600" />
-                  <div className="text-right">
-                    <span className="text-slate-400 block mb-1 font-bold">CIBLE (TARGET)</span>
-                    <span className="font-black text-emerald-400 text-lg">{etfPercentage} / {100 - etfPercentage}</span>
-                    <span className="text-[10px] text-slate-500 block">
-                        <button onClick={() => setEtfPercentage(etfPercentage === 80 ? 90 : 80)} className="underline hover:text-white">Modifier</button>
-                    </span>
+                  <div>
+                    <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                      <span>Défensif (ETF)</span>
+                      <span>Offensif (Actions)</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="100" 
+                      value={etfPercentage} 
+                      onChange={(e) => setEtfPercentage(parseInt(e.target.value))}
+                      className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    />
                   </div>
                 </div>
               </div>
@@ -270,12 +411,17 @@ export default function ZidalnoManagerApp() {
                     const gain = (pos.currentPrice - pos.avgPrice) * pos.qty;
                     const gainPct = ((pos.currentPrice - pos.avgPrice) / pos.avgPrice) * 100;
                     return (
-                      <div key={pos.id} className="bg-slate-800/50 border border-white/5 rounded-xl p-3 flex justify-between items-center hover:bg-slate-800 transition">
+                      <div key={pos.id} className="bg-slate-800/50 border border-white/5 rounded-xl p-3 flex justify-between items-center hover:bg-slate-800 transition group relative">
+                        <button onClick={() => removePosition(pos.id)} className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition z-10">
+                          <X size={12} />
+                        </button>
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs border ${pos.type === 'ETF' ? 'bg-blue-900/20 text-blue-400 border-blue-500/30' : 'bg-purple-900/20 text-purple-400 border-purple-500/30'}`}>{pos.ticker}</div>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs border ${pos.type === 'ETF' ? 'bg-blue-900/20 text-blue-400 border-blue-500/30' : 'bg-purple-900/20 text-purple-400 border-purple-500/30'}`}>
+                            {pos.ticker.substring(0, 4)}
+                          </div>
                           <div>
                             <div className="font-bold text-sm text-white">{pos.name}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">{pos.qty} parts • PRU: {pos.avgPrice}€</div>
+                            <div className="text-[10px] text-slate-400 font-mono">{pos.qty} parts • PRU: {pos.avgPrice.toFixed(2)}{pos.type === 'ETF' ? '€' : (pos.ticker.includes('.PA') ? '€' : '$')}</div>
                           </div>
                         </div>
                         <div className="text-right">
@@ -290,6 +436,33 @@ export default function ZidalnoManagerApp() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'watchlist' && (
+          <div className="space-y-6 animate-in fade-in">
+            <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3 text-yellow-400 font-bold text-sm uppercase">
+                <Eye size={16} /> Le Vestiaire ({watchlist.length})
+              </div>
+              <p className="text-slate-400 text-xs mb-4">Vos joueurs en observation. Cliquez sur l'œil pour retirer de la watchlist.</p>
+            </div>
+            
+            {watchlistPlayers.length === 0 ? (
+              <div className="text-center py-20 text-slate-500 text-sm">Aucun joueur dans le vestiaire. Ajoutez-en depuis le Marché !</div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {watchlistPlayers.map(player => (
+                  <FutCard 
+                    key={player.id} 
+                    player={player} 
+                    onAddToPortfolio={(ticker) => { setNewAssetTicker(ticker); setShowAddModal(true); }}
+                    onAddToWatchlist={toggleWatchlist}
+                    isInWatchlist={true}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -320,16 +493,43 @@ export default function ZidalnoManagerApp() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-black italic text-white flex items-center gap-2"><Flame className="text-orange-500" size={18} /> PÉPITES QGDV</h2>
-                <div className="relative w-28">
+              <div className="flex items-center justify-between mb-4 gap-2">
+                <h2 className="text-lg font-black italic text-white flex items-center gap-2"><Flame className="text-orange-500" size={18} /> MERCATO</h2>
+                <div className="relative flex-1 max-w-xs">
                   <Search className="absolute left-2 top-1.5 text-slate-500 w-3 h-3" />
-                  <input type="text" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-slate-800 rounded-lg py-1 pl-7 text-[10px] text-white border border-slate-700 outline-none" />
+                  <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-slate-800 rounded-lg py-1 pl-7 text-[10px] text-white border border-slate-700 outline-none focus:border-blue-500" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {filteredPlayers.map(player => <FutCard key={player.id} player={player} />)}
+              
+              <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                <button onClick={() => setMercatoFilter('all')} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition ${mercatoFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                  <Filter size={12} /> Tous
+                </button>
+                <button onClick={() => setMercatoFilter('pepites')} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition ${mercatoFilter === 'pepites' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                  <Trophy size={12} /> Pépites (OVR 85+)
+                </button>
+                <button onClick={() => setMercatoFilter('dividendes')} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition ${mercatoFilter === 'dividendes' ? 'bg-yellow-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                  <Banknote size={12} /> Dividendes
+                </button>
+                <button onClick={() => setMercatoFilter('croissance')} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition ${mercatoFilter === 'croissance' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                  <TrendingUp size={12} /> Croissance
+                </button>
               </div>
+              
+              {isLoading ? 
+                <div className="text-center py-20 text-slate-500">Chargement des données du marché...</div> : 
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {filteredPlayers.map(player => (
+                    <FutCard 
+                      key={player.id} 
+                      player={player} 
+                      onAddToPortfolio={(ticker) => { setNewAssetTicker(ticker); setShowAddModal(true); }}
+                      onAddToWatchlist={toggleWatchlist}
+                      isInWatchlist={watchlist.includes(player.ticker)}
+                    />
+                  ))}
+                </div>
+              }
             </div>
           </div>
         )}
@@ -347,17 +547,19 @@ export default function ZidalnoManagerApp() {
                 <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Joueur (Action/ETF)</label>
                 <div className="relative">
                   <select className="w-full bg-slate-800 text-white font-bold py-3 px-3 rounded-xl border border-slate-700 appearance-none outline-none focus:border-emerald-500" value={newAssetTicker} onChange={(e) => setNewAssetTicker(e.target.value)}>
-                    <optgroup label="Pépites (Actions)">{PLAYERS_DATA.map(p => <option key={p.id} value={p.ticker}>{p.name} ({p.ticker})</option>)}</optgroup>
+                    <option value="">-- Choisir --</option>
+                    <optgroup label="CAC 40">{playersData.filter(p => p.country === 'FR').map(p => <option key={p.id} value={p.ticker}>{p.name} ({p.ticker})</option>)}</optgroup>
+                    <optgroup label="S&P 500 + Gems">{playersData.filter(p => p.country === 'US').map(p => <option key={p.id} value={p.ticker}>{p.name} ({p.ticker})</option>)}</optgroup>
                     <optgroup label="Socle (ETF)">{ETF_DB.map(e => <option key={e.id} value={e.ticker}>{e.name} ({e.ticker})</option>)}</optgroup>
                   </select>
                   <ChevronDown className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" size={16} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Quantité</label><input type="number" required className="w-full bg-slate-800 text-white font-bold py-3 px-3 rounded-xl border border-slate-700 outline-none focus:border-emerald-500" placeholder="Ex: 10" value={newQty} onChange={(e) => setNewQty(e.target.value)} /></div>
-                <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">PRU (Prix d'achat)</label><input type="number" required className="w-full bg-slate-800 text-white font-bold py-3 px-3 rounded-xl border border-slate-700 outline-none focus:border-emerald-500" placeholder="Ex: 450" value={newPru} onChange={(e) => setNewPru(e.target.value)} /></div>
+                <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Quantité</label><input type="number" step="any" required className="w-full bg-slate-800 text-white font-bold py-3 px-3 rounded-xl border border-slate-700 outline-none focus:border-emerald-500" placeholder="Ex: 10" value={newQty} onChange={(e) => setNewQty(e.target.value)} /></div>
+                <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">PRU (Prix d'achat)</label><input type="number" step="any" required className="w-full bg-slate-800 text-white font-bold py-3 px-3 rounded-xl border border-slate-700 outline-none focus:border-emerald-500" placeholder="Ex: 450" value={newPru} onChange={(e) => setNewPru(e.target.value)} /></div>
               </div>
-              <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl shadow-lg shadow-emerald-900/50 transition active:scale-95 mt-2">VALIDER LE TRANSFERT</button>
+              <button type="submit" disabled={!newAssetTicker} className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-black py-3 rounded-xl shadow-lg shadow-emerald-900/50 transition active:scale-95 mt-2">VALIDER LE TRANSFERT</button>
             </form>
           </div>
         </div>
