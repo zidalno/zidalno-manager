@@ -2,23 +2,36 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, ChevronDown, Trophy, Flame, Wallet, ArrowRight, Users, Briefcase, ArrowUpRight, ArrowDownRight, AlertCircle, PlusCircle, X, BookOpen, ShieldCheck, TrendingUp, Banknote, RefreshCw, Trash2, Clock, Eye, EyeOff, Filter, TrendingDown } from 'lucide-react';
 
 // --- 🔑 CONFIGURATION API ---
-const FMP_API_KEY = 'YM7SZndpQ1iCTvxRpyBIC5R9GeNv3XHW';
+const FMP_API_KEY = 'YM7SZndpQ1iCTvxRpyBIC5R9GeNv3XHW'; // Votre clé (Fonctionne uniquement pour US)
 
 const APP_CONFIG = {
   title: "ZIDALNO MANAGER",
-  version: "V13 • Manager Edition",
-  lastUpdate: "Live Data"
+  version: "V14 • Hybrid US Live",
+  lastUpdate: "Mixed Data"
 };
 
-// --- 📊 DONNÉES DE RÉFÉRENCE ---
-const ETF_DB = [
-  { id: 'wpea', ticker: 'WPEA.PA', name: 'iShares MSCI World', price: 5.93, currency: '€', type: 'ETF' },
-  { id: 'ese', ticker: 'ESE.PA', name: 'BNP S&P 500', price: 22.40, currency: '€', type: 'ETF' },
-  { id: 'cw8', ticker: 'CW8.PA', name: 'Amundi MSCI World', price: 495.00, currency: '€', type: 'ETF' },
-  { id: 'paeem', ticker: 'PAEEM.PA', name: 'Amundi MSCI Emerging', price: 23.50, currency: '€', type: 'ETF' }
+// --- 1. DONNÉES STATIQUES (EUROPE & ETF - SIMULÉES POUR EVITER ERREUR 403) ---
+const STATIC_EU_DATA = [
+  // ETF (Socle)
+  { id: 'wpea', ticker: 'WPEA.PA', name: 'iShares MSCI World', price: 5.25, currency: '€', type: 'ETF', ovr: 85, position: 'SOCLE', country: 'EU', rarity: 'common', stats: { pac: 70, sho: 70, pas: 90, phy: 80 }, broker: 'PEA', comment: "Socle World à frais réduits." },
+  { id: 'ese', ticker: 'ESE.PA', name: 'BNP S&P 500', price: 22.40, currency: '€', type: 'ETF', ovr: 88, position: 'SOCLE', country: 'EU', rarity: 'common', stats: { pac: 80, sho: 60, pas: 85, phy: 75 }, broker: 'PEA', comment: "Performance US dans le PEA." },
+  { id: 'cw8', ticker: 'CW8.PA', name: 'Amundi MSCI World', price: 495.00, currency: '€', type: 'ETF', ovr: 85, position: 'SOCLE', country: 'EU', rarity: 'common', stats: { pac: 70, sho: 70, pas: 90, phy: 80 }, broker: 'PEA', comment: "Le classique indémodable." },
+  
+  // Actions FR (Pépites)
+  { id: 'mc', ticker: 'MC.PA', name: 'LVMH', price: 715, currency: '€', type: 'Action', ovr: 91, position: 'LUXE', country: 'FR', rarity: 'gold', stats: { pac: 82, sho: 85, pas: 94, phy: 70 }, broker: 'LCL (PEA)', comment: "Le Roi du CAC40. Qualité 'Wide Moat'." },
+  { id: 'rms', ticker: 'RMS.PA', name: 'HERMÈS', price: 2200, currency: '€', type: 'Action', ovr: 92, position: 'LUXE', country: 'FR', rarity: 'gold', stats: { pac: 85, sho: 40, pas: 99, phy: 50 }, broker: 'LCL (PEA)', comment: "L'ultra-luxe. Pricing power absolu." },
+  { id: 'ai', ticker: 'AI.PA', name: 'AIR LIQUIDE', price: 175, currency: '€', type: 'Action', ovr: 89, position: 'IND', country: 'FR', rarity: 'icon', stats: { pac: 65, sho: 85, pas: 95, phy: 80 }, broker: 'LCL (PEA)', comment: "Stabilité exemplaire et actions gratuites." },
+  { id: 'or', ticker: 'OR.PA', name: 'L\'ORÉAL', price: 445, currency: '€', type: 'Action', ovr: 86, position: 'CONS', country: 'FR', rarity: 'gold', stats: { pac: 70, sho: 75, pas: 90, phy: 72 }, broker: 'LCL (PEA)', comment: "Pilier défensif." },
+  { id: 'su', ticker: 'SU.PA', name: 'SCHNEIDER', price: 240, currency: '€', type: 'Action', ovr: 90, position: 'ELEC', country: 'FR', rarity: 'if', stats: { pac: 88, sho: 65, pas: 88, phy: 60 }, broker: 'LCL (PEA)', comment: "Géant de la transition énergétique." },
+  { id: 'asml', ticker: 'ASML', name: 'ASML', price: 880, currency: '€', type: 'Action', ovr: 94, position: 'TECH', country: 'NL', rarity: 'toty', stats: { pac: 96, sho: 45, pas: 99, phy: 65 }, broker: 'IBKR', comment: "Monopole technologique européen." }
 ];
 
-const SP500_TOP100_TICKERS = ["AAPL", "MSFT", "NVDA"]; // Juste 3 actions
+// --- 2. TICKERS US A RECUPERER VIA API (LIVE) ---
+const US_TICKERS_TO_FETCH = [
+  "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", // Big Tech
+  "KNSL", "V", "MA", "COST", "KO", "PEP", // Quality Growth
+  "LLY", "JPM", "BLK" // Santé/Finance
+];
 
 // --- COMPOSANT CARTE FUT ---
 const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) => {
@@ -127,87 +140,61 @@ export default function ZidalnoManagerApp() {
   const [newQty, setNewQty] = useState('');
   const [newPru, setNewPru] = useState('');
   
-  useEffect(() => {
-    localStorage.setItem('zidalno_portfolio', JSON.stringify(portfolio));
-  }, [portfolio]);
-  
-  useEffect(() => {
-    localStorage.setItem('zidalno_watchlist', JSON.stringify(watchlist));
-  }, [watchlist]);
-  
-  useEffect(() => {
-    localStorage.setItem('zidalno_target_etf', etfPercentage.toString());
-  }, [etfPercentage]);
+  useEffect(() => { localStorage.setItem('zidalno_portfolio', JSON.stringify(portfolio)); }, [portfolio]);
+  useEffect(() => { localStorage.setItem('zidalno_watchlist', JSON.stringify(watchlist)); }, [watchlist]);
+  useEffect(() => { localStorage.setItem('zidalno_target_etf', etfPercentage.toString()); }, [etfPercentage]);
 
   const fetchAllData = useCallback(async () => {
     setIsLoading(true);
-    const cachedData = JSON.parse(localStorage.getItem('zidalno_players_cache')) || {};
-    const now = new Date();
-    const lastCacheTime = new Date(cachedData.timestamp || 0);
-    const needsRefresh = (now - lastCacheTime) > 60 * 60 * 1000; // 1h
+    
+    // 1. Charger les données EU statiques (Toujours disponibles)
+    const euData = STATIC_EU_DATA;
 
-    if (Object.keys(cachedData).length > 0 && !needsRefresh) {
-      setPlayersData(cachedData.data);
-      setLastUpdate(new Date(cachedData.timestamp));
-      setIsLoading(false);
-      return;
-    }
-
+    // 2. Tenter de charger les données US (API)
     try {
-      // --- CORRECTION BATCHING POUR EVITER ERREUR 403 ---
-      const chunkSize = 50; // Max 50 tickers par appel
-      const chunks = [];
-      for (let i = 0; i < ALL_TICKERS.length; i += chunkSize) {
-        chunks.push(ALL_TICKERS.slice(i, i + chunkSize));
-      }
-
-      let allQuotes = [];
-
-      for (const chunk of chunks) {
-        const res = await fetch(`https://financialmodelingprep.com/api/v3/quote/${chunk.join(',')}?apikey=${FMP_API_KEY}`);
-        if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
-        const data = await res.json();
-        allQuotes = [...allQuotes, ...data];
-      }
-      // ---------------------------------------------------
+      // On ne fetch QUE les tickers US pour ne pas être bloqué par l'API gratuite
+      const tickersString = US_TICKERS_TO_FETCH.join(',');
+      const res = await fetch(`https://financialmodelingprep.com/api/v3/quote/${tickersString}?apikey=${FMP_API_KEY}`);
       
-      const mappedData = allQuotes.map(q => {
-        const country = CAC40_TICKERS.includes(q.symbol) ? 'FR' : 'US';
-        const ovr = Math.min(99, Math.max(70, Math.floor(75 + (q.changesPercentage || 0) * 2)));
-        
+      if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
+      const usApiData = await res.json();
+
+      // Transformation des données US
+      const usData = usApiData.map(q => {
+        const ovr = Math.min(99, Math.max(70, Math.floor(75 + (q.changesPercentage || 0) * 2 + (q.marketCap > 1e12 ? 10 : 0))));
         return {
           id: q.symbol,
           ticker: q.symbol,
-          name: q.name,
+          name: q.name.length > 15 ? q.symbol : q.name, // Si nom trop long, on met le ticker
           price: q.price,
           changePercent: q.changesPercentage || 0,
-          currency: country === 'US' ? '$' : '€',
+          currency: '$',
           ovr: ovr,
-          position: q.exchange?.substring(0, 6) || 'MKT',
+          position: 'US',
+          type: 'Action',
           stats: { 
-            pac: Math.min(99, Math.floor(70 + Math.random() * 25)), 
-            sho: Math.min(99, Math.floor(60 + Math.random() * 30)), 
-            pas: Math.min(99, Math.floor(75 + Math.random() * 20)), 
-            phy: Math.min(99, Math.floor(65 + Math.random() * 25))
+            pac: Math.min(99, Math.floor(70 + Math.abs(q.changesPercentage) * 5)), 
+            sho: Math.min(99, Math.floor(50 + (q.eps || 2) * 5)), 
+            pas: Math.min(99, Math.floor(80 + Math.random() * 15)), 
+            phy: Math.min(99, Math.floor(60 + (q.pe || 20)))
           },
-          broker: country === 'FR' ? 'LCL (PEA)' : 'IBKR (CTO)',
-          country: country,
+          broker: 'IBKR (CTO)',
+          country: 'US',
           rarity: ovr > 90 ? 'toty' : (ovr > 85 ? 'gold' : (ovr > 80 ? 'if' : 'common')),
-          comment: `Market Cap: ${(q.marketCap / 1e9).toFixed(1)}B`
+          comment: `Market Cap: ${(q.marketCap / 1e9).toFixed(1)}B $`
         };
       });
-      
-      const newCache = {  mappedData, timestamp: now.toISOString() };
-      localStorage.setItem('zidalno_players_cache', JSON.stringify(newCache));
-      setPlayersData(mappedData);
-      setLastUpdate(now);
+
+      // Fusion des deux mondes
+      const combinedData = [...euData, ...usData];
+      setPlayersData(combinedData);
+      setLastUpdate(new Date());
 
     } catch (error) {
-      console.error("Erreur API FMP:", error);
-      if (cachedData.data) {
-         setPlayersData(cachedData.data); // Fallback sur cache si erreur
-         alert("Mise à jour échouée (Limite API). Données en cache affichées.");
-      }
+      console.error("Erreur API FMP (US):", error);
+      // Si l'API plante, on affiche au moins les données EU
+      setPlayersData(euData);
+      alert("Impossible de récupérer les prix US en direct. Seules les valeurs EU sont affichées.");
     } finally {
       setIsLoading(false);
     }
@@ -215,18 +202,7 @@ export default function ZidalnoManagerApp() {
 
   useEffect(() => {
     fetchAllData();
-    
-    const intervalId = setInterval(() => {
-      const now = new Date();
-      const hour = now.getHours();
-      const day = now.getDay();
-      
-      if (day >= 1 && day <= 5 && hour >= 9 && hour < 23) {
-        console.log("🔄 Refresh auto des prix...");
-        fetchAllData();
-      }
-    }, 3600000);
-
+    const intervalId = setInterval(fetchAllData, 60000); // Refresh toutes les minutes (c'est safe pour 20 actions)
     return () => clearInterval(intervalId);
   }, [fetchAllData]);
 
@@ -244,7 +220,7 @@ export default function ZidalnoManagerApp() {
   
   const handleAddPosition = (e) => {
     e.preventDefault();
-    const assetData = playersData.find(p => p.ticker === newAssetTicker) || ETF_DB.find(e => e.ticker === newAssetTicker);
+    const assetData = playersData.find(p => p.ticker === newAssetTicker);
     if (!assetData) return;
 
     const newPosition = {
@@ -271,8 +247,16 @@ export default function ZidalnoManagerApp() {
     let stockValue = 0;
 
     portfolio.forEach(pos => {
-      const val = pos.qty * pos.currentPrice;
-      const cost = pos.qty * pos.avgPrice;
+      // On essaie de trouver le prix à jour, sinon on garde le vieux prix stocké
+      const liveAsset = playersData.find(p => p.ticker === pos.ticker);
+      const currentPrice = liveAsset ? liveAsset.price : pos.currentPrice;
+      
+      // Conversion $ vers € approximative pour le total (si nécessaire)
+      const priceInEur = (pos.ticker.includes('.PA') || pos.ticker === 'ASML') ? currentPrice : currentPrice * 0.92;
+
+      const val = pos.qty * priceInEur;
+      const cost = pos.qty * pos.avgPrice; // On suppose PRU saisi en euros pour simplifier
+      
       totalValue += val;
       totalCost += cost;
       if(pos.type === 'ETF') etfValue += val;
@@ -284,7 +268,7 @@ export default function ZidalnoManagerApp() {
     const totalGainPercent = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
 
     return { totalValue, totalGain, totalGainPercent, currentEtfRatio, etfValue, stockValue };
-  }, [portfolio]);
+  }, [portfolio, playersData]);
 
   const coachAdvice = useMemo(() => {
     const targetEtfVal = portfolioStats.totalValue * (etfPercentage / 100);
@@ -320,7 +304,7 @@ export default function ZidalnoManagerApp() {
         <div className="w-full max-w-sm text-center">
           <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4 animate-pulse" />
           <h1 className="text-3xl font-black italic text-white mb-1 tracking-tighter">ZIDALNO MANAGER</h1>
-          <p className="text-slate-500 text-xs mb-8 uppercase font-bold tracking-widest">V13 • Manager Edition</p>
+          <p className="text-slate-500 text-xs mb-8 uppercase font-bold tracking-widest">V14 • Hybrid US Live</p>
           <form onSubmit={(e) => { e.preventDefault(); if(passwordInput.toLowerCase() === 'zidalno') setIsAuthenticated(true); }} className="space-y-4">
             <input type="password" placeholder="PASSWORD" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 text-center text-white font-bold tracking-widest focus:border-yellow-500 outline-none" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} />
             <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-3 rounded-xl transition">ENTER CLUB</button>
@@ -338,7 +322,7 @@ export default function ZidalnoManagerApp() {
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center font-bold text-sm border border-white/20">Z</div>
           <div>
             <div className="text-[10px] text-slate-400 font-bold uppercase">Club Value</div>
-            <div className="font-black text-sm text-white">{portfolioStats.totalValue.toLocaleString()} €</div>
+            <div className="font-black text-sm text-white">{portfolioStats.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} €</div>
           </div>
         </div>
         <div className={`text-xs font-bold px-2 py-1 rounded ${portfolioStats.totalGain >= 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
@@ -347,7 +331,7 @@ export default function ZidalnoManagerApp() {
       </div>
 
       <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-1 text-[10px] text-yellow-500 font-bold text-center flex items-center justify-center gap-2">
-        <Clock size={10} /> {lastUpdate ? `Dernière MAJ: ${lastUpdate.toLocaleTimeString()}` : "Chargement..."}
+        <Clock size={10} /> {lastUpdate ? `US Live: ${lastUpdate.toLocaleTimeString()}` : "Connexion US..."}
         <button onClick={fetchAllData} disabled={isLoading} className="ml-2 text-yellow-300 hover:text-yellow-100 disabled:opacity-50 transition">
           <RefreshCw size={10} className={isLoading ? 'animate-spin' : ''} />
         </button>
@@ -420,8 +404,12 @@ export default function ZidalnoManagerApp() {
               ) : (
                 <div className="space-y-3">
                   {portfolio.map(pos => {
-                    const gain = (pos.currentPrice - pos.avgPrice) * pos.qty;
-                    const gainPct = ((pos.currentPrice - pos.avgPrice) / pos.avgPrice) * 100;
+                    // Trouver l'asset en live pour avoir le prix actuel
+                    const liveAsset = playersData.find(p => p.ticker === pos.ticker);
+                    const currentPrice = liveAsset ? liveAsset.price : pos.currentPrice;
+                    const gain = (currentPrice - pos.avgPrice) * pos.qty;
+                    const gainPct = ((currentPrice - pos.avgPrice) / pos.avgPrice) * 100;
+                    
                     return (
                       <div key={pos.id} className="bg-slate-800/50 border border-white/5 rounded-xl p-3 flex justify-between items-center hover:bg-slate-800 transition group relative">
                         <button onClick={() => removePosition(pos.id)} className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition z-10">
@@ -433,11 +421,14 @@ export default function ZidalnoManagerApp() {
                           </div>
                           <div>
                             <div className="font-bold text-sm text-white">{pos.name}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">{pos.qty} parts • PRU: {pos.avgPrice.toFixed(2)}{pos.type === 'ETF' ? '€' : (pos.ticker.includes('.PA') ? '€' : '$')}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              {pos.qty} parts • PRU: {pos.avgPrice.toFixed(2)}
+                              {pos.ticker.includes('.PA') ? '€' : (liveAsset?.currency || '$')}
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-bold text-sm">{(pos.qty * pos.currentPrice).toLocaleString()}€</div>
+                          <div className="font-bold text-sm">{(pos.qty * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })} {pos.ticker.includes('.PA') ? '€' : (liveAsset?.currency || '$')}</div>
                           <div className={`text-[10px] font-bold flex items-center justify-end gap-1 ${gain >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {gain >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}{gainPct.toFixed(1)}%
                           </div>
@@ -529,7 +520,7 @@ export default function ZidalnoManagerApp() {
               </div>
               
               {isLoading ? 
-                <div className="text-center py-20 text-slate-500 animate-pulse">Chargement des données... (Cela peut prendre quelques secondes)</div> : 
+                <div className="text-center py-20 text-slate-500 animate-pulse">Chargement des données...</div> : 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {filteredPlayers.map(player => (
                     <FutCard 
@@ -560,9 +551,9 @@ export default function ZidalnoManagerApp() {
                 <div className="relative">
                   <select className="w-full bg-slate-800 text-white font-bold py-3 px-3 rounded-xl border border-slate-700 appearance-none outline-none focus:border-emerald-500" value={newAssetTicker} onChange={(e) => setNewAssetTicker(e.target.value)}>
                     <option value="">-- Choisir --</option>
-                    <optgroup label="CAC 40">{playersData.filter(p => p.country === 'FR').map(p => <option key={p.id} value={p.ticker}>{p.name} ({p.ticker})</option>)}</optgroup>
-                    <optgroup label="S&P 500 + Gems">{playersData.filter(p => p.country === 'US').map(p => <option key={p.id} value={p.ticker}>{p.name} ({p.ticker})</option>)}</optgroup>
-                    <optgroup label="Socle (ETF)">{ETF_DB.map(e => <option key={e.id} value={e.ticker}>{e.name} ({e.ticker})</option>)}</optgroup>
+                    <optgroup label="Marché (Disponibles)">
+                        {playersData.map(p => <option key={p.id} value={p.ticker}>{p.name} ({p.ticker}) - {p.price}{p.currency}</option>)}
+                    </optgroup>
                   </select>
                   <ChevronDown className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" size={16} />
                 </div>
