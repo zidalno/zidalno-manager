@@ -42,29 +42,24 @@ const MASTER_DB = [
   { id: 'btc', ticker: 'BTC-USD', name: 'BITCOIN TEST', type: 'Crypto', ovr: 99, position: 'TEST', country: 'X', rarity: 'toty', broker: 'X', stats: { pac: 99, sho: 99, pas: 99, phy: 99 }, fairValue: null, comment: "Si le prix bouge, ça marche !", currency: '$', price: 90000 },
 ];
 
-// --- FONCTION FETCH YAHOO ROBUSTE (CLIENT ONLY) ---
+// --- FONCTION FETCH VIA NOTRE PROXY VERCEL V24 ---
 const fetchYahooQuotes = async (tickers) => {
   if (!tickers || tickers.length === 0) return [];
   
-  const symbolStr = tickers.join(',');
-  const timestamp = Date.now();
+  // On appelle notre propre proxy interne
+  const apiUrl = `/api/proxy?symbols=${tickers.join(',')}&t=${Date.now()}`;
   
-  const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbolStr}&t=${timestamp}`;
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
-
   try {
-    const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error('Network response was not ok');
-    
+    const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error("Erreur Proxy Interne");
     const data = await response.json();
-    const yahooData = JSON.parse(data.contents);
-    
-    return yahooData.quoteResponse?.result || [];
+    return data || [];
   } catch (error) {
-    console.error("Erreur Fetch Yahoo (Client):", error);
+    console.error("Erreur Fetch:", error);
     return [];
   }
 };
+
 
 // --- COMPOSANT CARTE ---
 const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) => {
