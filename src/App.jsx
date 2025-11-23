@@ -1,36 +1,47 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, ChevronDown, Trophy, Flame, Wallet, ArrowRight, Users, Briefcase, ArrowUpRight, ArrowDownRight, AlertCircle, PlusCircle, X, BookOpen, ShieldCheck, TrendingUp, Banknote, RefreshCw, Trash2, Clock, Eye, EyeOff, Filter, TrendingDown } from 'lucide-react';
+import { Search, Trophy, Flame, Wallet, ArrowRight, Users, Briefcase, ArrowUpRight, ArrowDownRight, AlertCircle, PlusCircle, X, BookOpen, ShieldCheck, TrendingUp, Banknote, RefreshCw, Clock, Eye, EyeOff, Filter, TrendingDown, Zap } from 'lucide-react';
 
-// --- 🔑 CONFIGURATION API ---
-const FMP_API_KEY = 'YM7SZndpQ1iCTvxRpyBIC5R9GeNv3XHW'; // Votre clé (Fonctionne uniquement pour US)
+// --- 🔑 CONFIGURATION FINNHUB ---
+// 1. Créez votre compte gratuit sur https://finnhub.io/
+// 2. Copiez votre clé API ci-dessous
+const FINNHUB_API_KEY = "d4hdg91r01qgvvc78b70d4hdg91r01qgvvc78b7g"; 
 
 const APP_CONFIG = {
   title: "ZIDALNO MANAGER",
-  version: "V14 • Hybrid US Live",
-  lastUpdate: "Mixed Data"
+  version: "V18 • Finnhub Live",
+  lastUpdate: "Real-Time"
 };
 
-// --- 1. DONNÉES STATIQUES (EUROPE & ETF - SIMULÉES POUR EVITER ERREUR 403) ---
-const STATIC_EU_DATA = [
-  // ETF (Socle)
-  { id: 'wpea', ticker: 'WPEA.PA', name: 'iShares MSCI World', price: 5.25, currency: '€', type: 'ETF', ovr: 85, position: 'SOCLE', country: 'EU', rarity: 'common', stats: { pac: 70, sho: 70, pas: 90, phy: 80 }, broker: 'PEA', comment: "Socle World à frais réduits." },
-  { id: 'ese', ticker: 'ESE.PA', name: 'BNP S&P 500', price: 22.40, currency: '€', type: 'ETF', ovr: 88, position: 'SOCLE', country: 'EU', rarity: 'common', stats: { pac: 80, sho: 60, pas: 85, phy: 75 }, broker: 'PEA', comment: "Performance US dans le PEA." },
-  { id: 'cw8', ticker: 'CW8.PA', name: 'Amundi MSCI World', price: 495.00, currency: '€', type: 'ETF', ovr: 85, position: 'SOCLE', country: 'EU', rarity: 'common', stats: { pac: 70, sho: 70, pas: 90, phy: 80 }, broker: 'PEA', comment: "Le classique indémodable." },
+// --- BASE DE DONNÉES MAÎTRE (30+ Valeurs) ---
+// Les données fondamentales (Notes FIFA) sont fixes.
+// Les PRIX seront mis à jour par Finnhub.
+const MASTER_DB = [
+  // ETF (SOCLE)
+  { id: 'wpea', ticker: 'WPEA.PA', name: 'iShares MSCI World', type: 'ETF', ovr: 85, position: 'SOCLE', country: 'EU', rarity: 'common', broker: 'PEA', stats: { pac: 70, sho: 70, pas: 90, phy: 80 }, comment: "Frais mini. Le standard." },
+  { id: 'ese', ticker: 'ESE.PA', name: 'BNP S&P 500', type: 'ETF', ovr: 88, position: 'SOCLE', country: 'EU', rarity: 'common', broker: 'PEA', stats: { pac: 80, sho: 60, pas: 85, phy: 75 }, comment: "La puissance US en PEA." },
+  { id: 'cw8', ticker: 'CW8.PA', name: 'Amundi MSCI World', type: 'ETF', ovr: 85, position: 'SOCLE', country: 'EU', rarity: 'common', broker: 'PEA', stats: { pac: 70, sho: 70, pas: 90, phy: 80 }, comment: "L'historique fiable." },
   
-  // Actions FR (Pépites)
-  { id: 'mc', ticker: 'MC.PA', name: 'LVMH', price: 715, currency: '€', type: 'Action', ovr: 91, position: 'LUXE', country: 'FR', rarity: 'gold', stats: { pac: 82, sho: 85, pas: 94, phy: 70 }, broker: 'LCL (PEA)', comment: "Le Roi du CAC40. Qualité 'Wide Moat'." },
-  { id: 'rms', ticker: 'RMS.PA', name: 'HERMÈS', price: 2200, currency: '€', type: 'Action', ovr: 92, position: 'LUXE', country: 'FR', rarity: 'gold', stats: { pac: 85, sho: 40, pas: 99, phy: 50 }, broker: 'LCL (PEA)', comment: "L'ultra-luxe. Pricing power absolu." },
-  { id: 'ai', ticker: 'AI.PA', name: 'AIR LIQUIDE', price: 175, currency: '€', type: 'Action', ovr: 89, position: 'IND', country: 'FR', rarity: 'icon', stats: { pac: 65, sho: 85, pas: 95, phy: 80 }, broker: 'LCL (PEA)', comment: "Stabilité exemplaire et actions gratuites." },
-  { id: 'or', ticker: 'OR.PA', name: 'L\'ORÉAL', price: 445, currency: '€', type: 'Action', ovr: 86, position: 'CONS', country: 'FR', rarity: 'gold', stats: { pac: 70, sho: 75, pas: 90, phy: 72 }, broker: 'LCL (PEA)', comment: "Pilier défensif." },
-  { id: 'su', ticker: 'SU.PA', name: 'SCHNEIDER', price: 240, currency: '€', type: 'Action', ovr: 90, position: 'ELEC', country: 'FR', rarity: 'if', stats: { pac: 88, sho: 65, pas: 88, phy: 60 }, broker: 'LCL (PEA)', comment: "Géant de la transition énergétique." },
-  { id: 'asml', ticker: 'ASML', name: 'ASML', price: 880, currency: '€', type: 'Action', ovr: 94, position: 'TECH', country: 'NL', rarity: 'toty', stats: { pac: 96, sho: 45, pas: 99, phy: 65 }, broker: 'IBKR', comment: "Monopole technologique européen." }
-];
+  // CAC 40 (FRANCE)
+  { id: 'mc', ticker: 'MC.PA', name: 'LVMH', type: 'Action', ovr: 91, position: 'LUXE', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 82, sho: 85, pas: 94, phy: 70 }, comment: "Numéro 1 mondial du luxe." },
+  { id: 'rms', ticker: 'RMS.PA', name: 'HERMÈS', type: 'Action', ovr: 92, position: 'LUXE', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 85, sho: 40, pas: 99, phy: 50 }, comment: "L'ultra-luxe. Pricing power absolu." },
+  { id: 'ai', ticker: 'AI.PA', name: 'AIR LIQUIDE', type: 'Action', ovr: 89, position: 'IND', country: 'FR', rarity: 'icon', broker: 'LCL (PEA)', stats: { pac: 65, sho: 85, pas: 95, phy: 80 }, comment: "Stabilité et actions gratuites." },
+  { id: 'or', ticker: 'OR.PA', name: 'L\'ORÉAL', type: 'Action', ovr: 86, position: 'CONS', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 70, sho: 75, pas: 90, phy: 72 }, comment: "Le leader de la beauté." },
+  { id: 'su', ticker: 'SU.PA', name: 'SCHNEIDER', type: 'Action', ovr: 90, position: 'ELEC', country: 'FR', rarity: 'if', broker: 'LCL (PEA)', stats: { pac: 88, sho: 65, pas: 88, phy: 60 }, comment: "Transition énergétique." },
+  { id: 'lr', ticker: 'LR.PA', name: 'LEGRAND', type: 'Action', ovr: 88, position: 'ELEC', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 75, sho: 80, pas: 92, phy: 78 }, comment: "Rentabilité exemplaire." },
+  { id: 'tte', ticker: 'TTE.PA', name: 'TOTALENERGIES', type: 'Action', ovr: 82, position: 'NRJ', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 50, sho: 95, pas: 80, phy: 90 }, comment: "Gros rendement." },
+  { id: 'san', ticker: 'SAN.PA', name: 'SANOFI', type: 'Action', ovr: 78, position: 'MED', country: 'FR', rarity: 'common', broker: 'LCL (PEA)', stats: { pac: 40, sho: 88, pas: 70, phy: 85 }, comment: "Dividende roi." },
+  { id: 'air', ticker: 'AIR.PA', name: 'AIRBUS', type: 'Action', ovr: 85, position: 'AERO', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 70, sho: 45, pas: 90, phy: 80 }, comment: "Carnet de commandes plein." },
 
-// --- 2. TICKERS US A RECUPERER VIA API (LIVE) ---
-const US_TICKERS_TO_FETCH = [
-  "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", // Big Tech
-  "KNSL", "V", "MA", "COST", "KO", "PEP", // Quality Growth
-  "LLY", "JPM", "BLK" // Santé/Finance
+  // US & MONDE
+  { id: 'msft', ticker: 'MSFT', name: 'MICROSOFT', type: 'Action', ovr: 93, position: 'TECH', country: 'US', rarity: 'icon', broker: 'IBKR (CTO)', stats: { pac: 88, sho: 60, pas: 98, phy: 75 }, comment: "Cloud + IA + Office." },
+  { id: 'aapl', ticker: 'AAPL', name: 'APPLE', type: 'Action', ovr: 90, position: 'TECH', country: 'US', rarity: 'gold', broker: 'IBKR (CTO)', stats: { pac: 75, sho: 55, pas: 96, phy: 70 }, comment: "Cash machine." },
+  { id: 'nvda', ticker: 'NVDA', name: 'NVIDIA', type: 'Action', ovr: 94, position: 'CHIP', country: 'US', rarity: 'toty', broker: 'IBKR (CTO)', stats: { pac: 99, sho: 10, pas: 90, phy: 55 }, comment: "Moteur de l'IA." },
+  { id: 'googl', ticker: 'GOOGL', name: 'ALPHABET', type: 'Action', ovr: 89, position: 'TECH', country: 'US', rarity: 'if', broker: 'IBKR (CTO)', stats: { pac: 80, sho: 20, pas: 95, phy: 85 }, comment: "Monopole Search." },
+  { id: 'amzn', ticker: 'AMZN', name: 'AMAZON', type: 'Action', ovr: 88, position: 'RETL', country: 'US', rarity: 'gold', broker: 'IBKR (CTO)', stats: { pac: 85, sho: 0, pas: 92, phy: 75 }, comment: "E-commerce et Cloud." },
+  { id: 'tsla', ticker: 'TSLA', name: 'TESLA', type: 'Action', ovr: 85, position: 'AUTO', country: 'US', rarity: 'if', broker: 'IBKR (CTO)', stats: { pac: 95, sho: 0, pas: 70, phy: 60 }, comment: "Volatilité extrême." },
+  { id: 'knsl', ticker: 'KNSL', name: 'KINSALE', type: 'Action', ovr: 89, position: 'FIN', country: 'US', rarity: 'if', broker: 'IBKR (CTO)', stats: { pac: 99, sho: 20, pas: 85, phy: 80 }, comment: "Croissance folle." },
+  { id: 'asml', ticker: 'ASML', name: 'ASML', type: 'Action', ovr: 94, position: 'TECH', country: 'NL', rarity: 'toty', broker: 'IBKR', stats: { pac: 96, sho: 45, pas: 99, phy: 65 }, comment: "Monopole vital." },
+  { id: 'novo', ticker: 'NVO', name: 'NOVO NORDISK', type: 'Action', ovr: 95, position: 'MED', country: 'DK', rarity: 'toty', broker: 'IBKR', stats: { pac: 98, sho: 40, pas: 95, phy: 60 }, comment: "Leader obésité." }
 ];
 
 // --- COMPOSANT CARTE FUT ---
@@ -48,10 +59,10 @@ const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) 
   };
   
   const getTrendBadge = (changePercent) => {
-    if (changePercent > 2.5) return { icon: <Flame size={12}/>, color: 'bg-green-500', label: 'ON FIRE' };
-    if (changePercent > 0.5) return { icon: <ArrowUpRight size={12}/>, color: 'bg-green-400', label: 'Forme' };
-    if (changePercent < -2.5) return { icon: <TrendingDown size={12}/>, color: 'bg-red-500', label: 'COLD' };
-    if (changePercent < -0.5) return { icon: <ArrowDownRight size={12}/>, color: 'bg-red-400', label: 'Méforme' };
+    if (changePercent > 1.5) return { icon: <Flame size={12}/>, color: 'bg-green-500', label: 'ON FIRE' };
+    if (changePercent > 0.2) return { icon: <ArrowUpRight size={12}/>, color: 'bg-green-400', label: 'Forme' };
+    if (changePercent < -1.5) return { icon: <TrendingDown size={12}/>, color: 'bg-red-500', label: 'COLD' };
+    if (changePercent < -0.2) return { icon: <ArrowDownRight size={12}/>, color: 'bg-red-400', label: 'Méforme' };
     return { icon: <ArrowRight size={12}/>, color: 'bg-slate-500', label: 'Neutre' };
   };
   
@@ -65,7 +76,7 @@ const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) 
       <div className="h-full w-full border border-white/20 rounded-[1.3rem] p-2 flex flex-col relative overflow-hidden">
         
         <div className={`absolute top-1 right-1 ${trend.color} text-white rounded-full px-1.5 py-0.5 text-[8px] font-bold flex items-center gap-0.5 z-20`}>
-          {trend.icon}
+          {trend.icon} {player.changePercent ? player.changePercent.toFixed(2) : "0.00"}%
         </div>
         
         {!isFlipped ? (
@@ -88,7 +99,9 @@ const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) 
                 <div className="flex justify-between"><span className={`font-bold ${textColor}`}>{player.stats.phy}</span><span className={`font-medium ${labelColor} text-[8px]`}>VAL</span></div>
               </div>
             </div>
-            <div className="mt-2 text-center bg-black/10 rounded py-0.5"><span className={`font-bold text-xs ${textColor}`}>{player.price} {player.currency}</span></div>
+            <div className="mt-2 text-center bg-black/10 rounded py-0.5 flex justify-center items-center gap-1">
+              <span className={`font-bold text-xs ${textColor}`}>{player.price ? player.price.toFixed(2) : "---"} {player.currency}</span>
+            </div>
           </>
         ) : (
           <div className="flex flex-col h-full text-center justify-center gap-2 animate-in fade-in relative z-10">
@@ -114,9 +127,13 @@ export default function ZidalnoManagerApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState('market'); 
-  const [playersData, setPlayersData] = useState([]);
+  
+  // On initialise avec les données statiques pour affichage immédiat
+  const [playersData, setPlayersData] = useState(MASTER_DB);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
   const [search, setSearch] = useState('');
   const [mercatoFilter, setMercatoFilter] = useState('all');
   
@@ -144,67 +161,62 @@ export default function ZidalnoManagerApp() {
   useEffect(() => { localStorage.setItem('zidalno_watchlist', JSON.stringify(watchlist)); }, [watchlist]);
   useEffect(() => { localStorage.setItem('zidalno_target_etf', etfPercentage.toString()); }, [etfPercentage]);
 
-  const fetchAllData = useCallback(async () => {
-    setIsLoading(true);
-    
-    // 1. Charger les données EU statiques (Toujours disponibles)
-    const euData = STATIC_EU_DATA;
-
-    // 2. Tenter de charger les données US (API)
-    try {
-      // On ne fetch QUE les tickers US pour ne pas être bloqué par l'API gratuite
-      const tickersString = US_TICKERS_TO_FETCH.join(',');
-      const res = await fetch(`https://financialmodelingprep.com/api/v3/quote/${tickersString}?apikey=${FMP_API_KEY}`);
-      
-      if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
-      const usApiData = await res.json();
-
-      // Transformation des données US
-      const usData = usApiData.map(q => {
-        const ovr = Math.min(99, Math.max(70, Math.floor(75 + (q.changesPercentage || 0) * 2 + (q.marketCap > 1e12 ? 10 : 0))));
-        return {
-          id: q.symbol,
-          ticker: q.symbol,
-          name: q.name.length > 15 ? q.symbol : q.name, // Si nom trop long, on met le ticker
-          price: q.price,
-          changePercent: q.changesPercentage || 0,
-          currency: '$',
-          ovr: ovr,
-          position: 'US',
-          type: 'Action',
-          stats: { 
-            pac: Math.min(99, Math.floor(70 + Math.abs(q.changesPercentage) * 5)), 
-            sho: Math.min(99, Math.floor(50 + (q.eps || 2) * 5)), 
-            pas: Math.min(99, Math.floor(80 + Math.random() * 15)), 
-            phy: Math.min(99, Math.floor(60 + (q.pe || 20)))
-          },
-          broker: 'IBKR (CTO)',
-          country: 'US',
-          rarity: ovr > 90 ? 'toty' : (ovr > 85 ? 'gold' : (ovr > 80 ? 'if' : 'common')),
-          comment: `Market Cap: ${(q.marketCap / 1e9).toFixed(1)}B $`
-        };
-      });
-
-      // Fusion des deux mondes
-      const combinedData = [...euData, ...usData];
-      setPlayersData(combinedData);
-      setLastUpdate(new Date());
-
-    } catch (error) {
-      console.error("Erreur API FMP (US):", error);
-      // Si l'API plante, on affiche au moins les données EU
-      setPlayersData(euData);
-      alert("Impossible de récupérer les prix US en direct. Seules les valeurs EU sont affichées.");
-    } finally {
-      setIsLoading(false);
+  // --- FONCTION DE FETCH INTELLIGENT (QUEUE) ---
+  const updateMarketData = useCallback(async () => {
+    if (!FINNHUB_API_KEY || FINNHUB_API_KEY.includes("VOTRE_CLE")) {
+      console.warn("Clé API manquante. Données statiques utilisées.");
+      return;
     }
+
+    setIsLoading(true);
+    setLoadingProgress(0);
+    let updatedPlayers = [...MASTER_DB]; // Copie de départ
+    
+    // On traite les actions une par une avec un délai pour respecter le rate limit (60/min)
+    // On vise 1 requête toutes les 300-500ms
+    
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    for (let i = 0; i < MASTER_DB.length; i++) {
+      const player = MASTER_DB[i];
+      try {
+        const response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${player.ticker}&token=${FINNHUB_API_KEY}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Mise à jour progressive de la liste locale
+          updatedPlayers[i] = {
+            ...player,
+            price: data.c || player.price, // c = Current Price
+            changePercent: data.dp || 0,   // dp = Percent Change
+            currency: player.ticker.includes('.PA') ? '€' : '$'
+          };
+          
+          // Mise à jour visuelle de l'interface pour effet "chargement en direct"
+          setPlayersData([...updatedPlayers]);
+        } else if (response.status === 429) {
+          console.warn("Rate Limit Finnhub atteint. Pause...");
+          await delay(2000); // On attend plus longtemps si bloqué
+        }
+      } catch (err) {
+        console.error(`Erreur fetch ${player.ticker}`, err);
+      }
+      
+      setLoadingProgress(Math.round(((i + 1) / MASTER_DB.length) * 100));
+      // Le délai vital pour ne pas se faire bannir (300ms = ~3 requêtes/sec max, un peu agressif mais ça passe souvent en burst)
+      await delay(300); 
+    }
+    
+    setLastUpdate(new Date());
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchAllData();
-    const intervalId = setInterval(fetchAllData, 60000); // Refresh toutes les minutes (c'est safe pour 20 actions)
-    return () => clearInterval(intervalId);
-  }, [fetchAllData]);
+    updateMarketData();
+    // Mise à jour toutes les 5 minutes pour être large sur les limites
+    const interval = setInterval(updateMarketData, 300000);
+    return () => clearInterval(interval);
+  }, [updateMarketData]);
 
   const removePosition = (idToRemove) => {
     setPortfolio(portfolio.filter(pos => pos.id !== idToRemove));
@@ -230,7 +242,7 @@ export default function ZidalnoManagerApp() {
       qty: Number(newQty),
       avgPrice: Number(newPru),
       currentPrice: assetData.price,
-      type: assetData.type || 'Action'
+      type: assetData.type
     };
 
     setPortfolio([...portfolio, newPosition]);
@@ -247,15 +259,15 @@ export default function ZidalnoManagerApp() {
     let stockValue = 0;
 
     portfolio.forEach(pos => {
-      // On essaie de trouver le prix à jour, sinon on garde le vieux prix stocké
       const liveAsset = playersData.find(p => p.ticker === pos.ticker);
       const currentPrice = liveAsset ? liveAsset.price : pos.currentPrice;
       
-      // Conversion $ vers € approximative pour le total (si nécessaire)
-      const priceInEur = (pos.ticker.includes('.PA') || pos.ticker === 'ASML') ? currentPrice : currentPrice * 0.92;
+      // Conversion approx USD/EUR
+      let priceInEur = currentPrice;
+      if (liveAsset && liveAsset.currency === '$') priceInEur = currentPrice * 0.95;
 
       const val = pos.qty * priceInEur;
-      const cost = pos.qty * pos.avgPrice; // On suppose PRU saisi en euros pour simplifier
+      const cost = pos.qty * pos.avgPrice;
       
       totalValue += val;
       totalCost += cost;
@@ -274,21 +286,26 @@ export default function ZidalnoManagerApp() {
     const targetEtfVal = portfolioStats.totalValue * (etfPercentage / 100);
     const diff = targetEtfVal - portfolioStats.etfValue;
     
-    if (portfolioStats.totalValue === 0) return { action: 'Débutant', msg: "Le club est vide. Commencez par recruter !", color: 'text-slate-400' };
+    if (portfolioStats.totalValue === 0) return { action: 'Débutant', msg: "Le club est vide. Recrutez des joueurs (Actions/ETF) pour commencer !", color: 'text-slate-400' };
     if (Math.abs(diff) < (portfolioStats.totalValue * 0.05)) return { action: 'Tactique Parfaite', msg: "L'équilibre Socle/Pépites est respecté. Continuez ainsi.", color: 'text-emerald-400' };
     if (diff > 0) return { action: 'Renforcer la Défense', msg: `Votre socle (ETF) est trop faible. Il manque environ ${diff.toFixed(0)}€ d'ETF pour respecter le ratio.`, color: 'text-blue-400' };
     return { action: 'Attaque Trop Lourde', msg: `Vous avez trop d'actions individuelles (${(100-portfolioStats.currentEtfRatio).toFixed(0)}%). Calmez le stock picking ou renforcez le socle.`, color: 'text-orange-400' };
   }, [portfolioStats, etfPercentage]);
 
   const filteredPlayers = useMemo(() => {
-    let filtered = playersData.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+    let filtered = playersData.filter(p => 
+      p.name.toLowerCase().includes(search.toLowerCase()) || 
+      p.ticker.toLowerCase().includes(search.toLowerCase())
+    );
     
     if (mercatoFilter === 'pepites') {
-      filtered = filtered.filter(p => p.ovr >= 85 && p.changePercent < 0);
+      filtered = filtered.filter(p => p.ovr >= 85);
     } else if (mercatoFilter === 'dividendes') {
       filtered = filtered.filter(p => p.stats.sho >= 80);
     } else if (mercatoFilter === 'croissance') {
       filtered = filtered.filter(p => p.stats.pac >= 85);
+    } else if (mercatoFilter === 'etf') {
+      filtered = filtered.filter(p => p.type === 'ETF');
     }
     
     return filtered.sort((a, b) => b.ovr - a.ovr);
@@ -304,7 +321,7 @@ export default function ZidalnoManagerApp() {
         <div className="w-full max-w-sm text-center">
           <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4 animate-pulse" />
           <h1 className="text-3xl font-black italic text-white mb-1 tracking-tighter">ZIDALNO MANAGER</h1>
-          <p className="text-slate-500 text-xs mb-8 uppercase font-bold tracking-widest">V14 • Hybrid US Live</p>
+          <p className="text-slate-500 text-xs mb-8 uppercase font-bold tracking-widest">V18 • Finnhub Live</p>
           <form onSubmit={(e) => { e.preventDefault(); if(passwordInput.toLowerCase() === 'zidalno') setIsAuthenticated(true); }} className="space-y-4">
             <input type="password" placeholder="PASSWORD" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 text-center text-white font-bold tracking-widest focus:border-yellow-500 outline-none" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} />
             <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-3 rounded-xl transition">ENTER CLUB</button>
@@ -330,11 +347,19 @@ export default function ZidalnoManagerApp() {
         </div>
       </div>
 
-      <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-1 text-[10px] text-yellow-500 font-bold text-center flex items-center justify-center gap-2">
-        <Clock size={10} /> {lastUpdate ? `US Live: ${lastUpdate.toLocaleTimeString()}` : "Connexion US..."}
-        <button onClick={fetchAllData} disabled={isLoading} className="ml-2 text-yellow-300 hover:text-yellow-100 disabled:opacity-50 transition">
-          <RefreshCw size={10} className={isLoading ? 'animate-spin' : ''} />
-        </button>
+      {/* BARRE DE CHARGEMENT "FINNHUB" */}
+      <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-2 text-[10px] text-yellow-500 font-bold text-center flex flex-col items-center justify-center gap-1">
+        <div className="flex items-center gap-2">
+          <Clock size={10} /> {lastUpdate ? `FINNHUB LIVE: ${lastUpdate.toLocaleTimeString()}` : "Connexion..."}
+          <button onClick={updateMarketData} disabled={isLoading} className="ml-2 text-yellow-300 hover:text-yellow-100 disabled:opacity-50 transition">
+            <RefreshCw size={10} className={isLoading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+        {isLoading && (
+          <div className="w-32 h-1 bg-white/10 rounded-full overflow-hidden mt-1">
+            <div className="h-full bg-yellow-500 transition-all duration-300" style={{ width: `${loadingProgress}%` }}></div>
+          </div>
+        )}
       </div>
 
       <div className="flex p-2 bg-slate-800 mx-4 mt-4 rounded-xl border border-white/5 gap-1">
@@ -404,7 +429,6 @@ export default function ZidalnoManagerApp() {
               ) : (
                 <div className="space-y-3">
                   {portfolio.map(pos => {
-                    // Trouver l'asset en live pour avoir le prix actuel
                     const liveAsset = playersData.find(p => p.ticker === pos.ticker);
                     const currentPrice = liveAsset ? liveAsset.price : pos.currentPrice;
                     const gain = (currentPrice - pos.avgPrice) * pos.qty;
@@ -423,12 +447,12 @@ export default function ZidalnoManagerApp() {
                             <div className="font-bold text-sm text-white">{pos.name}</div>
                             <div className="text-[10px] text-slate-400 font-mono">
                               {pos.qty} parts • PRU: {pos.avgPrice.toFixed(2)}
-                              {pos.ticker.includes('.PA') ? '€' : (liveAsset?.currency || '$')}
+                              {liveAsset?.currency || '€'}
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-bold text-sm">{(pos.qty * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })} {pos.ticker.includes('.PA') ? '€' : (liveAsset?.currency || '$')}</div>
+                          <div className="font-bold text-sm">{(pos.qty * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })} {liveAsset?.currency || '€'}</div>
                           <div className={`text-[10px] font-bold flex items-center justify-end gap-1 ${gain >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {gain >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}{gainPct.toFixed(1)}%
                           </div>
@@ -461,7 +485,7 @@ export default function ZidalnoManagerApp() {
                     player={player} 
                     onAddToPortfolio={(ticker) => { setNewAssetTicker(ticker); setShowAddModal(true); }}
                     onAddToWatchlist={toggleWatchlist}
-                    isInWatchlist={true}
+                    isInWatchlist={watchlist.includes(player.ticker)}
                   />
                 ))}
               </div>
@@ -500,13 +524,16 @@ export default function ZidalnoManagerApp() {
                 <h2 className="text-lg font-black italic text-white flex items-center gap-2"><Flame className="text-orange-500" size={18} /> MERCATO</h2>
                 <div className="relative flex-1 max-w-xs">
                   <Search className="absolute left-2 top-1.5 text-slate-500 w-3 h-3" />
-                  <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-slate-800 rounded-lg py-1 pl-7 text-[10px] text-white border border-slate-700 outline-none focus:border-blue-500" />
+                  <input type="text" placeholder="Rechercher (ex: Legrand)..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-slate-800 rounded-lg py-1 pl-7 text-[10px] text-white border border-slate-700 outline-none focus:border-blue-500" />
                 </div>
               </div>
               
-              <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+              <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
                 <button onClick={() => setMercatoFilter('all')} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition ${mercatoFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                   <Filter size={12} /> Tous
+                </button>
+                <button onClick={() => setMercatoFilter('etf')} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition ${mercatoFilter === 'etf' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                  <Zap size={12} /> ETF (Socle)
                 </button>
                 <button onClick={() => setMercatoFilter('pepites')} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition ${mercatoFilter === 'pepites' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                   <Trophy size={12} /> Pépites (OVR 85+)
@@ -514,13 +541,10 @@ export default function ZidalnoManagerApp() {
                 <button onClick={() => setMercatoFilter('dividendes')} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition ${mercatoFilter === 'dividendes' ? 'bg-yellow-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                   <Banknote size={12} /> Dividendes
                 </button>
-                <button onClick={() => setMercatoFilter('croissance')} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition ${mercatoFilter === 'croissance' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
-                  <TrendingUp size={12} /> Croissance
-                </button>
               </div>
               
-              {isLoading ? 
-                <div className="text-center py-20 text-slate-500 animate-pulse">Chargement des données...</div> : 
+              {isLoading && loadingProgress < 100 ? 
+                <div className="text-center py-20 text-slate-500 animate-pulse">Chargement des données... ({loadingProgress}%)</div> : 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {filteredPlayers.map(player => (
                     <FutCard 
@@ -551,8 +575,8 @@ export default function ZidalnoManagerApp() {
                 <div className="relative">
                   <select className="w-full bg-slate-800 text-white font-bold py-3 px-3 rounded-xl border border-slate-700 appearance-none outline-none focus:border-emerald-500" value={newAssetTicker} onChange={(e) => setNewAssetTicker(e.target.value)}>
                     <option value="">-- Choisir --</option>
-                    <optgroup label="Marché (Disponibles)">
-                        {playersData.map(p => <option key={p.id} value={p.ticker}>{p.name} ({p.ticker}) - {p.price}{p.currency}</option>)}
+                    <optgroup label="Marché">
+                        {playersData.map(p => <option key={p.id} value={p.ticker}>{p.name} ({p.ticker}) - {p.price ? p.price.toFixed(2) : ''}{p.currency}</option>)}
                     </optgroup>
                   </select>
                   <ChevronDown className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" size={16} />
