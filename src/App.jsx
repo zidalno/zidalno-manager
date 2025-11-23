@@ -1,105 +1,69 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, ChevronDown, Trophy, Flame, Wallet, ArrowRight, Users, Briefcase, ArrowUpRight, ArrowDownRight, AlertCircle, PlusCircle, X, BookOpen, ShieldCheck, TrendingUp, Banknote, RefreshCw, Trash2, Clock, Eye, EyeOff, Filter, TrendingDown, Target, Zap } from 'lucide-react';
+import { Search, ChevronDown, Trophy, Flame, Wallet, ArrowRight, Users, Briefcase, ArrowUpRight, ArrowDownRight, AlertCircle, PlusCircle, X, BookOpen, ShieldCheck, TrendingUp, Banknote, RefreshCw, Trash2, Clock, Eye, EyeOff, Filter, TrendingDown, Target, Zap, CheckCircle } from 'lucide-react';
 
 // --- CONFIGURATION ---
 const APP_CONFIG = {
   title: "ZIDALNO MANAGER",
-  version: "V19 • The Fixer",
+  version: "V22 • Batching Fix",
   lastUpdate: "Yahoo Live"
 };
 
-// --- BASE DE DONNÉES MAÎTRE AVEC JUSTE VALEUR (Fair Value) ---
-// fairValue = Prix cible estimé (Consensus Analystes / Morningstar approx)
+// --- BASE DE DONNÉES MAÎTRE ---
 const MASTER_DB = [
-  // ETF (SOCLE) - Pas de Fair Value pertinente, on suit le marché
-  { id: 'wpea', ticker: 'WPEA.PA', name: 'iShares MSCI World', type: 'ETF', ovr: 85, position: 'SOCLE', country: 'EU', rarity: 'common', broker: 'PEA', stats: { pac: 70, sho: 70, pas: 90, phy: 80 }, fairValue: null, comment: "Frais mini. Le standard." },
-  { id: 'ese', ticker: 'ESE.PA', name: 'BNP S&P 500', type: 'ETF', ovr: 88, position: 'SOCLE', country: 'EU', rarity: 'common', broker: 'PEA', stats: { pac: 80, sho: 60, pas: 85, phy: 75 }, fairValue: null, comment: "La puissance US en PEA." },
-  { id: 'cw8', ticker: 'CW8.PA', name: 'Amundi MSCI World', type: 'ETF', ovr: 85, position: 'SOCLE', country: 'EU', rarity: 'common', broker: 'PEA', stats: { pac: 70, sho: 70, pas: 90, phy: 80 }, fairValue: null, comment: "L'historique fiable." },
-  { id: 'paeem', ticker: 'PAEEM.PA', name: 'Amundi Emerging', type: 'ETF', ovr: 80, position: 'SOCLE', country: 'EU', rarity: 'common', broker: 'PEA', stats: { pac: 90, sho: 50, pas: 60, phy: 70 }, fairValue: null, comment: "Diversification Asie." },
+  // ETF (SOCLE)
+  { id: 'wpea', ticker: 'WPEA.PA', name: 'iShares MSCI World', type: 'ETF', ovr: 85, position: 'SOCLE', country: 'EU', rarity: 'common', broker: 'PEA', stats: { pac: 70, sho: 70, pas: 90, phy: 80 }, fairValue: null, comment: "Frais mini. Le standard.", currency: '€', price: 5.93 },
+  { id: 'ese', ticker: 'ESE.PA', name: 'BNP S&P 500', type: 'ETF', ovr: 88, position: 'SOCLE', country: 'EU', rarity: 'common', broker: 'PEA', stats: { pac: 80, sho: 60, pas: 85, phy: 75 }, fairValue: null, comment: "La puissance US en PEA.", currency: '€', price: 22.40 },
+  { id: 'cw8', ticker: 'CW8.PA', name: 'Amundi MSCI World', type: 'ETF', ovr: 85, position: 'SOCLE', country: 'EU', rarity: 'common', broker: 'PEA', stats: { pac: 70, sho: 70, pas: 90, phy: 80 }, fairValue: null, comment: "L'historique fiable.", currency: '€', price: 495.00 },
+  { id: 'paeem', ticker: 'PAEEM.PA', name: 'Amundi Emerging', type: 'ETF', ovr: 80, position: 'SOCLE', country: 'EU', rarity: 'common', broker: 'PEA', stats: { pac: 90, sho: 50, pas: 60, phy: 70 }, fairValue: null, comment: "Diversification Asie.", currency: '€', price: 23.50 },
 
   // CAC 40 (FRANCE)
-  { id: 'mc', ticker: 'MC.PA', name: 'LVMH', type: 'Action', ovr: 91, position: 'LUXE', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 82, sho: 85, pas: 94, phy: 70 }, fairValue: 790, comment: "Le Roi du Luxe." },
-  { id: 'rms', ticker: 'RMS.PA', name: 'HERMÈS', type: 'Action', ovr: 92, position: 'LUXE', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 85, sho: 40, pas: 99, phy: 50 }, fairValue: 2050, comment: "L'ultra-luxe se paie cher." },
-  { id: 'ai', ticker: 'AI.PA', name: 'AIR LIQUIDE', type: 'Action', ovr: 89, position: 'IND', country: 'FR', rarity: 'icon', broker: 'LCL (PEA)', stats: { pac: 65, sho: 85, pas: 95, phy: 80 }, fairValue: 185, comment: "Valeur fond de portefeuille." },
-  { id: 'or', ticker: 'OR.PA', name: 'L\'ORÉAL', type: 'Action', ovr: 86, position: 'CONS', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 70, sho: 75, pas: 90, phy: 72 }, fairValue: 420, comment: "Leader beauté mondial." },
-  { id: 'su', ticker: 'SU.PA', name: 'SCHNEIDER', type: 'Action', ovr: 90, position: 'ELEC', country: 'FR', rarity: 'if', broker: 'LCL (PEA)', stats: { pac: 88, sho: 65, pas: 88, phy: 60 }, fairValue: 230, comment: "Transition énergétique." },
-  { id: 'lr', ticker: 'LR.PA', name: 'LEGRAND', type: 'Action', ovr: 88, position: 'ELEC', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 75, sho: 80, pas: 92, phy: 78 }, fairValue: 105, comment: "Rentabilité exemplaire." },
-  { id: 'tte', ticker: 'TTE.PA', name: 'TOTALENERGIES', type: 'Action', ovr: 82, position: 'NRJ', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 50, sho: 95, pas: 80, phy: 90 }, fairValue: 75, comment: "Machine à dividendes." },
-  { id: 'san', ticker: 'SAN.PA', name: 'SANOFI', type: 'Action', ovr: 78, position: 'MED', country: 'FR', rarity: 'common', broker: 'LCL (PEA)', stats: { pac: 40, sho: 88, pas: 70, phy: 85 }, fairValue: 105, comment: "Sous-valorisée ?" },
-  { id: 'air', ticker: 'AIR.PA', name: 'AIRBUS', type: 'Action', ovr: 85, position: 'AERO', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 70, sho: 45, pas: 90, phy: 80 }, fairValue: 160, comment: "Monopole de fait." },
+  { id: 'mc', ticker: 'MC.PA', name: 'LVMH', type: 'Action', ovr: 91, position: 'LUXE', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 82, sho: 85, pas: 94, phy: 70 }, fairValue: 790, comment: "Le Roi du Luxe.", currency: '€', price: 620 },
+  { id: 'rms', ticker: 'RMS.PA', name: 'HERMÈS', type: 'Action', ovr: 92, position: 'LUXE', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 85, sho: 40, pas: 99, phy: 50 }, fairValue: 2050, comment: "L'ultra-luxe se paie cher.", currency: '€', price: 2100 },
+  { id: 'ai', ticker: 'AI.PA', name: 'AIR LIQUIDE', type: 'Action', ovr: 89, position: 'IND', country: 'FR', rarity: 'icon', broker: 'LCL (PEA)', stats: { pac: 65, sho: 85, pas: 95, phy: 80 }, fairValue: 185, comment: "Valeur fond de portefeuille.", currency: '€', price: 170 },
+  { id: 'or', ticker: 'OR.PA', name: 'L\'ORÉAL', type: 'Action', ovr: 86, position: 'CONS', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 70, sho: 75, pas: 90, phy: 72 }, fairValue: 420, comment: "Leader beauté mondial.", currency: '€', price: 360 },
+  { id: 'su', ticker: 'SU.PA', name: 'SCHNEIDER', type: 'Action', ovr: 90, position: 'ELEC', country: 'FR', rarity: 'if', broker: 'LCL (PEA)', stats: { pac: 88, sho: 65, pas: 88, phy: 60 }, fairValue: 230, comment: "Transition énergétique.", currency: '€', price: 240 },
+  { id: 'lr', ticker: 'LR.PA', name: 'LEGRAND', type: 'Action', ovr: 88, position: 'ELEC', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 75, sho: 80, pas: 92, phy: 78 }, fairValue: 105, comment: "Rentabilité exemplaire.", currency: '€', price: 98 },
+  { id: 'tte', ticker: 'TTE.PA', name: 'TOTALENERGIES', type: 'Action', ovr: 82, position: 'NRJ', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 50, sho: 95, pas: 80, phy: 90 }, fairValue: 75, comment: "Machine à dividendes.", currency: '€', price: 60 },
+  { id: 'san', ticker: 'SAN.PA', name: 'SANOFI', type: 'Action', ovr: 78, position: 'MED', country: 'FR', rarity: 'common', broker: 'LCL (PEA)', stats: { pac: 40, sho: 88, pas: 70, phy: 85 }, fairValue: 105, comment: "Sous-valorisée ?", currency: '€', price: 95 },
+  { id: 'air', ticker: 'AIR.PA', name: 'AIRBUS', type: 'Action', ovr: 85, position: 'AERO', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 70, sho: 45, pas: 90, phy: 80 }, fairValue: 160, comment: "Monopole de fait.", currency: '€', price: 140 },
 
   // US & MONDE
-  { id: 'msft', ticker: 'MSFT', name: 'MICROSOFT', type: 'Action', ovr: 93, position: 'TECH', country: 'US', rarity: 'icon', broker: 'IBKR (CTO)', stats: { pac: 88, sho: 60, pas: 98, phy: 75 }, fairValue: 450, comment: "Cloud + IA." },
-  { id: 'aapl', ticker: 'AAPL', name: 'APPLE', type: 'Action', ovr: 90, position: 'TECH', country: 'US', rarity: 'gold', broker: 'IBKR (CTO)', stats: { pac: 75, sho: 55, pas: 96, phy: 70 }, fairValue: 230, comment: "Cash machine." },
-  { id: 'nvda', ticker: 'NVDA', name: 'NVIDIA', type: 'Action', ovr: 94, position: 'CHIP', country: 'US', rarity: 'toty', broker: 'IBKR (CTO)', stats: { pac: 99, sho: 10, pas: 90, phy: 55 }, fairValue: 130, comment: "Moteur de l'IA." },
-  { id: 'googl', ticker: 'GOOGL', name: 'ALPHABET', type: 'Action', ovr: 89, position: 'TECH', country: 'US', rarity: 'if', broker: 'IBKR (CTO)', stats: { pac: 80, sho: 20, pas: 95, phy: 85 }, fairValue: 200, comment: "Google Search." },
-  { id: 'amzn', ticker: 'AMZN', name: 'AMAZON', type: 'Action', ovr: 88, position: 'RETL', country: 'US', rarity: 'gold', broker: 'IBKR (CTO)', stats: { pac: 85, sho: 0, pas: 92, phy: 75 }, fairValue: 210, comment: "E-commerce roi." },
-  { id: 'tsla', ticker: 'TSLA', name: 'TESLA', type: 'Action', ovr: 85, position: 'AUTO', country: 'US', rarity: 'if', broker: 'IBKR (CTO)', stats: { pac: 95, sho: 0, pas: 70, phy: 60 }, fairValue: 220, comment: "Volatilité extrême." },
-  { id: 'knsl', ticker: 'KNSL', name: 'KINSALE', type: 'Action', ovr: 89, position: 'FIN', country: 'US', rarity: 'if', broker: 'IBKR (CTO)', stats: { pac: 99, sho: 20, pas: 85, phy: 80 }, fairValue: 420, comment: "Pépite assurance." },
-  { id: 'asml', ticker: 'ASML', name: 'ASML', type: 'Action', ovr: 94, position: 'TECH', country: 'NL', rarity: 'toty', broker: 'IBKR', stats: { pac: 96, sho: 45, pas: 99, phy: 65 }, fairValue: 950, comment: "Indispensable." },
-  { id: 'novo', ticker: 'NVO', name: 'NOVO NORDISK', type: 'Action', ovr: 95, position: 'MED', country: 'DK', rarity: 'toty', broker: 'IBKR', stats: { pac: 98, sho: 40, pas: 95, phy: 60 }, fairValue: 135, comment: "Leader obésité." }
+  { id: 'msft', ticker: 'MSFT', name: 'MICROSOFT', type: 'Action', ovr: 93, position: 'TECH', country: 'US', rarity: 'icon', broker: 'IBKR (CTO)', stats: { pac: 88, sho: 60, pas: 98, phy: 75 }, fairValue: 450, comment: "Cloud + IA.", currency: '$', price: 420 },
+  { id: 'aapl', ticker: 'AAPL', name: 'APPLE', type: 'Action', ovr: 90, position: 'TECH', country: 'US', rarity: 'gold', broker: 'IBKR (CTO)', stats: { pac: 75, sho: 55, pas: 96, phy: 70 }, fairValue: 230, comment: "Cash machine.", currency: '$', price: 225 },
+  { id: 'nvda', ticker: 'NVDA', name: 'NVIDIA', type: 'Action', ovr: 94, position: 'CHIP', country: 'US', rarity: 'toty', broker: 'IBKR (CTO)', stats: { pac: 99, sho: 10, pas: 90, phy: 55 }, fairValue: 130, comment: "Moteur de l'IA.", currency: '$', price: 140 },
+  { id: 'googl', ticker: 'GOOGL', name: 'ALPHABET', type: 'Action', ovr: 89, position: 'TECH', country: 'US', rarity: 'if', broker: 'IBKR (CTO)', stats: { pac: 80, sho: 20, pas: 95, phy: 85 }, fairValue: 200, comment: "Google Search.", currency: '$', price: 170 },
+  { id: 'amzn', ticker: 'AMZN', name: 'AMAZON', type: 'Action', ovr: 88, position: 'RETL', country: 'US', rarity: 'gold', broker: 'IBKR (CTO)', stats: { pac: 85, sho: 0, pas: 92, phy: 75 }, fairValue: 210, comment: "E-commerce roi.", currency: '$', price: 185 },
+  { id: 'tsla', ticker: 'TSLA', name: 'TESLA', type: 'Action', ovr: 85, position: 'AUTO', country: 'US', rarity: 'if', broker: 'IBKR (CTO)', stats: { pac: 95, sho: 0, pas: 70, phy: 60 }, fairValue: 220, comment: "Volatilité extrême.", currency: '$', price: 240 },
+  { id: 'knsl', ticker: 'KNSL', name: 'KINSALE', type: 'Action', ovr: 89, position: 'FIN', country: 'US', rarity: 'if', broker: 'IBKR (CTO)', stats: { pac: 99, sho: 20, pas: 85, phy: 80 }, fairValue: 420, comment: "Pépite assurance.", currency: '$', price: 480 },
+  { id: 'asml', ticker: 'ASML', name: 'ASML', type: 'Action', ovr: 94, position: 'TECH', country: 'NL', rarity: 'toty', broker: 'IBKR', stats: { pac: 96, sho: 45, pas: 99, phy: 65 }, fairValue: 950, comment: "Indispensable.", currency: '€', price: 750 },
+  { id: 'novo', ticker: 'NVO', name: 'NOVO NORDISK', type: 'Action', ovr: 95, position: 'MED', country: 'DK', rarity: 'toty', broker: 'IBKR', stats: { pac: 98, sho: 40, pas: 95, phy: 60 }, fairValue: 135, comment: "Leader obésité.", currency: '$', price: 110 }
 ];
 
-  // --- FETCH YAHOO (LIVE AVEC BATCHING) ---
-  // Correctif : On découpe en paquets de 10 pour éviter l'erreur 500 (URL trop longue)
-  const updateMarketData = useCallback(async () => {
-    setIsLoading(true);
-    
-    // 1. On liste tous les tickers
-    const allTickers = MASTER_DB.map(p => p.ticker);
-    
-    // 2. On découpe en paquets de 10 (Batching)
-    const chunkSize = 10; 
-    const chunks = [];
-    for (let i = 0; i < allTickers.length; i += chunkSize) {
-      chunks.push(allTickers.slice(i, i + chunkSize));
-    }
-
-    try {
-      let allQuotes = [];
-      
-      // 3. On lance les requêtes paquet par paquet
-      // On utilise Promise.all pour les lancer en parallèle (c'est rapide !)
-      const responses = await Promise.all(
-        chunks.map(chunk => fetchYahooQuotes(chunk))
-      );
-      
-      // 4. On recolle les morceaux
-      responses.forEach(chunkQuotes => {
-        allQuotes = [...allQuotes, ...chunkQuotes];
-      });
-
-      // 5. On met à jour l'état
-      const mergedData = MASTER_DB.map(staticPlayer => {
-        const liveData = allQuotes.find(q => q.symbol === staticPlayer.ticker);
-        return {
-          ...staticPlayer,
-          price: liveData?.regularMarketPrice || staticPlayer.price, 
-          changePercent: liveData?.regularMarketChangePercent || 0,
-          currency: liveData?.currency === 'EUR' ? '€' : (liveData?.currency === 'USD' ? '$' : staticPlayer.currency)
-        };
-      });
-      
-      setPlayersData(mergedData);
-      setLastUpdate(new Date());
-      
-    } catch (err) {
-      console.error("Erreur update globale:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
+// --- FONCTION FETCH YAHOO (CLIENT SIDE VIA PROXY) ---
+// Si l'API Serverless plante, on fallback sur le proxy client
+const fetchYahooQuotes = async (tickers) => {
+  if (!tickers || tickers.length === 0) return [];
+  const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers.join(',')}`;
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+  
+  try {
+    const response = await fetch(proxyUrl);
+    if (!response.ok) throw new Error("Erreur Proxy Yahoo");
+    const data = await response.json();
+    return data.quoteResponse?.result || [];
+  } catch (error) {
+    console.error("Erreur Fetch Yahoo:", error);
+    return [];
+  }
+};
 
 // --- COMPOSANT CARTE ---
 const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   
-  // Calcul du signal d'achat
   const getSignal = () => {
-    if (!player.fairValue) return null;
+    if (!player.fairValue || !player.price) return null;
     const upside = ((player.fairValue - player.price) / player.price) * 100;
-    
     if (upside > 10) return { label: "ZONE D'ACHAT", color: "bg-emerald-500", icon: <Target size={12}/> };
     if (upside < -10) return { label: "SURÉVALUÉ", color: "bg-red-500", icon: <AlertCircle size={12}/> };
     return { label: "PRIX JUSTE", color: "bg-slate-500", icon: <CheckCircle size={12}/> };
@@ -107,7 +71,6 @@ const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) 
 
   const signal = getSignal();
   
-  // Styles Rareté
   const getCardStyle = (rarity) => {
     switch(rarity) {
       case 'toty': return "bg-gradient-to-b from-blue-600 via-blue-800 to-blue-950 text-blue-100 border-blue-400";
@@ -125,7 +88,6 @@ const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) 
     <div onClick={() => setIsFlipped(!isFlipped)} className={`relative w-full aspect-[2/3] rounded-[1.5rem] p-1 shadow-xl cursor-pointer transform transition hover:scale-[1.02] ${style} border`}>
       <div className="h-full w-full border border-white/20 rounded-[1.3rem] p-2 flex flex-col relative overflow-hidden">
         
-        {/* Signal Achat Badge */}
         {signal && (
           <div className={`absolute top-2 right-2 ${signal.color} text-white rounded-full px-2 py-0.5 text-[8px] font-bold flex items-center gap-1 z-20 shadow-sm`}>
             {signal.icon} {signal.label}
@@ -176,27 +138,22 @@ const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) 
   );
 };
 
-// Helper Icon needed for Signal
-const CheckCircle = ({size}) => <div style={{width:size, height:size, borderRadius:'50%', border:'1.5px solid white'}}></div>;
-
 export default function ZidalnoManagerApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState('market'); 
-  const [playersData, setPlayersData] = useState(MASTER_DB); // Init avec DB maître
+  const [playersData, setPlayersData] = useState(MASTER_DB);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   
   const [search, setSearch] = useState('');
   const [mercatoFilter, setMercatoFilter] = useState('all');
   
-  // --- GESTION LOCALSTORAGE AVEC SECURITÉ (Anti Crash) ---
   const safeJSONParse = (key, fallback) => {
     try {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : fallback;
     } catch (e) {
-      console.error(`Erreur lecture ${key}`, e);
       return fallback;
     }
   };
@@ -217,27 +174,40 @@ export default function ZidalnoManagerApp() {
   useEffect(() => { localStorage.setItem('zidalno_watchlist', JSON.stringify(watchlist)); }, [watchlist]);
   useEffect(() => { localStorage.setItem('zidalno_target_etf', etfPercentage.toString()); }, [etfPercentage]);
 
-  // --- FONCTION RESET (Anti Bug) ---
   const handleHardReset = () => {
-    if (confirm("Attention : Cela va effacer tout votre portefeuille pour réparer l'application. Continuer ?")) {
+    if (confirm("Attention : Cela va effacer tout votre portefeuille. Continuer ?")) {
       localStorage.clear();
       window.location.reload();
     }
   };
 
-  // --- FETCH YAHOO (LIVE) ---
+  // --- BATCHING FIX : ON DECOUPE LES REQUETES ---
   const updateMarketData = useCallback(async () => {
     setIsLoading(true);
-    const tickers = MASTER_DB.map(p => p.ticker);
+    const allTickers = MASTER_DB.map(p => p.ticker);
     
+    // Batch size of 5 tickers per request to be safe
+    const chunkSize = 5; 
+    const chunks = [];
+    for (let i = 0; i < allTickers.length; i += chunkSize) {
+      chunks.push(allTickers.slice(i, i + chunkSize));
+    }
+
     try {
-      const quotes = await fetchYahooQuotes(tickers);
+      let allQuotes = [];
       
+      // Execute chunks sequentially
+      for (const chunk of chunks) {
+        const quotes = await fetchYahooQuotes(chunk);
+        allQuotes = [...allQuotes, ...quotes];
+        // Small delay to be nice to the API
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
       const mergedData = MASTER_DB.map(staticPlayer => {
-        const liveData = quotes.find(q => q.symbol === staticPlayer.ticker);
+        const liveData = allQuotes.find(q => q.symbol === staticPlayer.ticker);
         return {
           ...staticPlayer,
-          // Priorité au live, sinon garde le prix par défaut
           price: liveData?.regularMarketPrice || staticPlayer.price, 
           changePercent: liveData?.regularMarketChangePercent || 0,
           currency: liveData?.currency === 'EUR' ? '€' : (liveData?.currency === 'USD' ? '$' : staticPlayer.currency)
@@ -255,7 +225,7 @@ export default function ZidalnoManagerApp() {
 
   useEffect(() => {
     updateMarketData();
-    const interval = setInterval(updateMarketData, 60000); // 1min refresh
+    const interval = setInterval(updateMarketData, 60000);
     return () => clearInterval(interval);
   }, [updateMarketData]);
 
@@ -293,7 +263,6 @@ export default function ZidalnoManagerApp() {
     setNewAssetTicker('');
   };
 
-  // --- CALCULS SECURISÉS (Anti White Screen) ---
   const portfolioStats = useMemo(() => {
     let totalValue = 0;
     let totalCost = 0;
@@ -301,11 +270,8 @@ export default function ZidalnoManagerApp() {
     let stockValue = 0;
 
     portfolio.forEach(pos => {
-      // Sécurité : si l'action n'est plus dans la DB, on utilise les infos stockées dans le portfolio
       const liveAsset = playersData.find(p => p.ticker === pos.ticker);
       const currentPrice = liveAsset?.price || pos.currentPrice || 0;
-      
-      // Conversion $ -> € (Approx)
       let priceInEur = currentPrice;
       if (liveAsset?.currency === '$') priceInEur = currentPrice * 0.95;
 
@@ -343,7 +309,7 @@ export default function ZidalnoManagerApp() {
     
     if (mercatoFilter === 'pepites') filtered = filtered.filter(p => p.ovr >= 85);
     else if (mercatoFilter === 'etf') filtered = filtered.filter(p => p.type === 'ETF');
-    else if (mercatoFilter === 'buy') filtered = filtered.filter(p => p.fairValue && p.price < p.fairValue * 0.9); // Zone d'achat
+    else if (mercatoFilter === 'buy') filtered = filtered.filter(p => p.fairValue && p.price < p.fairValue * 0.9); 
     
     return filtered.sort((a, b) => b.ovr - a.ovr);
   }, [playersData, search, mercatoFilter]);
@@ -358,7 +324,7 @@ export default function ZidalnoManagerApp() {
         <div className="w-full max-w-sm text-center">
           <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4 animate-pulse" />
           <h1 className="text-3xl font-black italic text-white mb-1 tracking-tighter">ZIDALNO MANAGER</h1>
-          <p className="text-slate-500 text-xs mb-8 uppercase font-bold tracking-widest">V19 • The Fixer</p>
+          <p className="text-slate-500 text-xs mb-8 uppercase font-bold tracking-widest">V22 • The Batch Fix</p>
           <form onSubmit={(e) => { e.preventDefault(); if(passwordInput.toLowerCase() === 'zidalno') setIsAuthenticated(true); }} className="space-y-4">
             <input type="password" placeholder="PASSWORD" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 text-center text-white font-bold tracking-widest focus:border-yellow-500 outline-none" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} />
             <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-3 rounded-xl transition">ENTER CLUB</button>
@@ -371,7 +337,6 @@ export default function ZidalnoManagerApp() {
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans pb-24 overflow-x-hidden relative">
       
-      {/* HEADER */}
       <div className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-white/10 px-4 py-3 flex justify-between items-center shadow-lg">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center font-bold text-sm border border-white/20">Z</div>
@@ -384,7 +349,7 @@ export default function ZidalnoManagerApp() {
             <div className={`text-xs font-bold px-2 py-1 rounded ${portfolioStats.totalGain >= 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
             {portfolioStats.totalGain >= 0 ? '+' : ''}{portfolioStats.totalGainPercent.toFixed(1)}%
             </div>
-            <button onClick={handleHardReset} className="p-2 bg-red-500/10 hover:bg-red-500/30 rounded-full text-red-500 transition" title="Réinitialiser en cas de bug">
+            <button onClick={handleHardReset} className="p-2 bg-red-500/10 hover:bg-red-500/30 rounded-full text-red-500 transition" title="Réinitialiser">
                 <Trash2 size={14} />
             </button>
         </div>
