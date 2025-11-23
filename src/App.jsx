@@ -20,8 +20,6 @@ const ETF_DB = [
 
 const SP500_TOP100_TICKERS = ["AAPL", "MSFT", "NVDA"]; // Juste 3 actions
 
-const ALL_TICKERS = [...new Set([...CAC40_TICKERS, ...SP500_TOP100_TICKERS, ...EXTRA_GEMS])];
-
 // --- COMPOSANT CARTE FUT ---
 const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) => {
   const [isFlipped, setIsFlipped] = useState(false);
