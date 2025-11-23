@@ -27,6 +27,9 @@ const MASTER_DB = [
   { id: 'san', ticker: 'SAN.PA', name: 'SANOFI', type: 'Action', ovr: 78, position: 'MED', country: 'FR', rarity: 'common', broker: 'LCL (PEA)', stats: { pac: 40, sho: 88, pas: 70, phy: 85 }, fairValue: 105, comment: "Sous-valorisée ?", currency: '€', price: 95 },
   { id: 'air', ticker: 'AIR.PA', name: 'AIRBUS', type: 'Action', ovr: 85, position: 'AERO', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 70, sho: 45, pas: 90, phy: 80 }, fairValue: 160, comment: "Monopole de fait.", currency: '€', price: 140 },
 
+  // TEST LIVE (CRYPTO)
+  { id: 'btc', ticker: 'BTC-USD', name: 'BITCOIN TEST', type: 'Crypto', ovr: 99, position: 'TEST', country: 'X', rarity: 'toty', broker: 'X', stats: { pac: 99, sho: 99, pas: 99, phy: 99 }, fairValue: null, comment: "Si le prix bouge, ça marche !", currency: '$', price: 90000 },
+
   // US & MONDE
   { id: 'msft', ticker: 'MSFT', name: 'MICROSOFT', type: 'Action', ovr: 93, position: 'TECH', country: 'US', rarity: 'icon', broker: 'IBKR (CTO)', stats: { pac: 88, sho: 60, pas: 98, phy: 75 }, fairValue: 450, comment: "Cloud + IA.", currency: '$', price: 420 },
   { id: 'aapl', ticker: 'AAPL', name: 'APPLE', type: 'Action', ovr: 90, position: 'TECH', country: 'US', rarity: 'gold', broker: 'IBKR (CTO)', stats: { pac: 75, sho: 55, pas: 96, phy: 70 }, fairValue: 230, comment: "Cash machine.", currency: '$', price: 225 },
