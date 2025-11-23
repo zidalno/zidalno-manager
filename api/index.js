@@ -1,6 +1,9 @@
-import yahooFinance from 'yahoo-finance2';
+// api/index.js
 
-export default async function handler(req, res) {
+// Utilisation de la syntaxe 'require' pour une meilleure compatibilité Vercel
+const yahooFinance = require('yahoo-finance2').default;
+
+module.exports = async (req, res) => {
   const { symbols } = req.query;
   
   if (!symbols) {
@@ -10,15 +13,15 @@ export default async function handler(req, res) {
   try {
     const tickers = symbols.split(',');
     
-    // Options pour éviter les erreurs strictes
+    // Options pour être plus souple avec les résultats
     const queryOptions = { validateResult: false };
     
-    // On utilise la méthode 'quote' qui accepte un tableau de symboles
+    // La méthode 'quote' de la librairie pour récupérer les données
     const results = await yahooFinance.quote(tickers, queryOptions);
     
-    // On s'assure de toujours renvoyer un tableau
     const quotes = Array.isArray(results) ? results : [results];
     
+    // On met la réponse en cache pour 60 secondes
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
     return res.status(200).json(quotes);
 
@@ -29,4 +32,4 @@ export default async function handler(req, res) {
       details: error.message 
     });
   }
-}
+};
