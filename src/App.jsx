@@ -42,20 +42,21 @@ const MASTER_DB = [
   { id: 'novo', ticker: 'NVO', name: 'NOVO NORDISK', type: 'Action', ovr: 95, position: 'MED', country: 'DK', rarity: 'toty', broker: 'IBKR', stats: { pac: 98, sho: 40, pas: 95, phy: 60 }, fairValue: 135, comment: "Leader obésité.", currency: '$', price: 110 }
 ];
 
-// --- FONCTION FETCH YAHOO (CLIENT SIDE VIA PROXY) ---
-// Si l'API Serverless plante, on fallback sur le proxy client
+// --- FONCTION FETCH VIA NOTRE BACKEND VERCEL ---
 const fetchYahooQuotes = async (tickers) => {
   if (!tickers || tickers.length === 0) return [];
-  const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers.join(',')}`;
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+  
+  // On appelle NOTRE route /api (qui utilise yahoo-finance2)
+  // On ajoute un timestamp pour éviter le cache du navigateur
+  const apiUrl = `/api?symbols=${tickers.join(',')}&t=${Date.now()}`;
   
   try {
-    const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error("Erreur Proxy Yahoo");
+    const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error("Erreur Serveur API");
     const data = await response.json();
-    return data.quoteResponse?.result || [];
+    return data || []; // Le serveur renvoie déjà le tableau propre
   } catch (error) {
-    console.error("Erreur Fetch Yahoo:", error);
+    console.error("Erreur Fetch API Interne:", error);
     return [];
   }
 };
