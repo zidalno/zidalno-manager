@@ -18,11 +18,7 @@ const ETF_DB = [
   { id: 'paeem', ticker: 'PAEEM.PA', name: 'Amundi MSCI Emerging', price: 23.50, currency: '€', type: 'ETF' }
 ];
 
-const CAC40_TICKERS = ["MC.PA", "OR.PA", "AI.PA"]; // Juste 3 actions
-
 const SP500_TOP100_TICKERS = ["AAPL", "MSFT", "NVDA"]; // Juste 3 actions
-
-const EXTRA_GEMS = ["ASML", "NVO", "TSM", "RACE"];
 
 const ALL_TICKERS = [...new Set([...CAC40_TICKERS, ...SP500_TOP100_TICKERS, ...EXTRA_GEMS])];
 
