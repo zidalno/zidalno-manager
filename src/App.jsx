@@ -40,24 +40,56 @@ const MASTER_DB = [
   { id: 'novo', ticker: 'NVO', name: 'NOVO NORDISK', type: 'Action', ovr: 95, position: 'MED', country: 'DK', rarity: 'toty', broker: 'IBKR', stats: { pac: 98, sho: 40, pas: 95, phy: 60 }, fairValue: 135, comment: "Leader obésité." }
 ];
 
-// --- NOUVELLE FONCTION FETCH (VIA NOTRE SERVEUR VERCEL) ---
-const fetchYahooQuotes = async (tickers) => {
-  if (!tickers || tickers.length === 0) return [];
-  
-  // On appelle NOTRE serveur interne /api
-  // Vercel redirige automatiquement /api vers le fichier api/index.js
-  const apiUrl = `/api?symbols=${tickers.join(',')}`;
-  
-  try {
-    const response = await fetch(apiUrl);
-    if (!response.ok) throw new Error("Erreur Serveur API");
-    const data = await response.json();
-    return data || [];
-  } catch (error) {
-    console.error("Erreur Fetch API Interne:", error);
-    return [];
-  }
-};
+  // --- FETCH YAHOO (LIVE AVEC BATCHING) ---
+  // Correctif : On découpe en paquets de 10 pour éviter l'erreur 500 (URL trop longue)
+  const updateMarketData = useCallback(async () => {
+    setIsLoading(true);
+    
+    // 1. On liste tous les tickers
+    const allTickers = MASTER_DB.map(p => p.ticker);
+    
+    // 2. On découpe en paquets de 10 (Batching)
+    const chunkSize = 10; 
+    const chunks = [];
+    for (let i = 0; i < allTickers.length; i += chunkSize) {
+      chunks.push(allTickers.slice(i, i + chunkSize));
+    }
+
+    try {
+      let allQuotes = [];
+      
+      // 3. On lance les requêtes paquet par paquet
+      // On utilise Promise.all pour les lancer en parallèle (c'est rapide !)
+      const responses = await Promise.all(
+        chunks.map(chunk => fetchYahooQuotes(chunk))
+      );
+      
+      // 4. On recolle les morceaux
+      responses.forEach(chunkQuotes => {
+        allQuotes = [...allQuotes, ...chunkQuotes];
+      });
+
+      // 5. On met à jour l'état
+      const mergedData = MASTER_DB.map(staticPlayer => {
+        const liveData = allQuotes.find(q => q.symbol === staticPlayer.ticker);
+        return {
+          ...staticPlayer,
+          price: liveData?.regularMarketPrice || staticPlayer.price, 
+          changePercent: liveData?.regularMarketChangePercent || 0,
+          currency: liveData?.currency === 'EUR' ? '€' : (liveData?.currency === 'USD' ? '$' : staticPlayer.currency)
+        };
+      });
+      
+      setPlayersData(mergedData);
+      setLastUpdate(new Date());
+      
+    } catch (err) {
+      console.error("Erreur update globale:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
 
 // --- COMPOSANT CARTE ---
 const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) => {
