@@ -18,9 +18,9 @@ const ETF_DB = [
   { id: 'paeem', ticker: 'PAEEM.PA', name: 'Amundi MSCI Emerging', price: 23.50, currency: '€', type: 'ETF' }
 ];
 
-const CAC40_TICKERS = ["AC.PA", "AI.PA", "AIR.PA", "ALO.PA", "MT.AS", "BN.PA", "BNP.PA", "BOU.PA", "CAP.PA", "CA.PA", "ACA.PA", "CS.PA", "GLE.PA", "DG.PA", "EL.PA", "ENGI.PA", "ERF.PA", "RMS.PA", "KER.PA", "OR.PA", "LR.PA", "MC.PA", "ML.PA", "ORA.PA", "RI.PA", "PUB.PA", "RNO.PA", "SAF.PA", "SGO.PA", "SAN.PA", "SU.PA", "STMPA.PA", "TEP.PA", "HO.PA", "TTE.PA", "URW.AS", "VIE.PA", "VIV.PA", "WLN.PA"];
+const CAC40_TICKERS = ["MC.PA", "OR.PA", "AI.PA"]; // Juste 3 actions
 
-const SP500_TOP100_TICKERS = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "BRK-B", "JPM", "JNJ", "V", "PG", "UNH", "HD", "MA", "BAC", "LLY", "XOM", "CVX", "AVGO", "KO", "PEP", "COST", "WMT", "ADBE", "CRM", "NFLX", "PFE", "MRK", "MCD", "CSCO", "ABT", "TMO", "ACN", "DIS", "WFC", "ORCL", "DHR", "INTC", "QCOM", "TXN", "NKE", "AMD", "UNP", "LIN", "UPS", "PM", "CAT", "LOW", "NEE", "GS", "HON", "IBM", "MDT", "RTX", "SBUX", "GE", "C", "AMGN", "BLK", "BA", "DE", "T", "SPGI", "MMM", "AXP", "MS", "GILD", "PYPL", "ISRG", "ADP", "NOW", "CVS", "BKNG", "TJX", "TGT", "ZTS", "AMT", "LMT", "FISV", "MO", "USB", "PNC", "CI", "VRTX", "BDX", "ADI", "SO", "FIS", "GM", "FDX", "ETN", "DUK", "SYK"];
+const SP500_TOP100_TICKERS = ["AAPL", "MSFT", "NVDA"]; // Juste 3 actions
 
 const EXTRA_GEMS = ["ASML", "NVO", "TSM", "RACE"];
 
