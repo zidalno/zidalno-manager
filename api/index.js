@@ -9,14 +9,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    // On nettoie la liste des symboles
+    // On supprime les suppressions de log pour éviter les warnings
+    yahooFinance.suppressNotices(['yahooSurvey']);
+
     const tickers = symbols.split(',');
     
-    // On demande les infos à Yahoo via la librairie officielle
+    // On utilise la méthode quoteCombine qui est plus robuste pour les listes
     const results = await yahooFinance.quote(tickers);
     
-    // On renvoie le résultat (un tableau d'objets)
-    // Si un seul résultat, yahooFinance renvoie un objet, donc on le met dans un tableau
     const quotes = Array.isArray(results) ? results : [results];
     
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
@@ -24,6 +24,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("API Error:", error);
-    return res.status(500).json({ error: 'Failed to fetch data', details: error.message });
+    return res.status(500).json({ 
+      error: 'Failed to fetch data', 
+      details: error.message 
+    });
   }
 }
