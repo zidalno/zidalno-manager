@@ -4,7 +4,7 @@ import { Search, ChevronDown, Trophy, Flame, Wallet, ArrowRight, Users, Briefcas
 // --- CONFIGURATION ---
 const APP_CONFIG = {
   title: "ZIDALNO MANAGER",
-  version: "V22 • Batching Fix",
+  version: "V23 • Frontend Only",
   lastUpdate: "Yahoo Live"
 };
 
@@ -27,9 +27,6 @@ const MASTER_DB = [
   { id: 'san', ticker: 'SAN.PA', name: 'SANOFI', type: 'Action', ovr: 78, position: 'MED', country: 'FR', rarity: 'common', broker: 'LCL (PEA)', stats: { pac: 40, sho: 88, pas: 70, phy: 85 }, fairValue: 105, comment: "Sous-valorisée ?", currency: '€', price: 95 },
   { id: 'air', ticker: 'AIR.PA', name: 'AIRBUS', type: 'Action', ovr: 85, position: 'AERO', country: 'FR', rarity: 'gold', broker: 'LCL (PEA)', stats: { pac: 70, sho: 45, pas: 90, phy: 80 }, fairValue: 160, comment: "Monopole de fait.", currency: '€', price: 140 },
 
-  // TEST LIVE (CRYPTO)
-  { id: 'btc', ticker: 'BTC-USD', name: 'BITCOIN TEST', type: 'Crypto', ovr: 99, position: 'TEST', country: 'X', rarity: 'toty', broker: 'X', stats: { pac: 99, sho: 99, pas: 99, phy: 99 }, fairValue: null, comment: "Si le prix bouge, ça marche !", currency: '$', price: 90000 },
-
   // US & MONDE
   { id: 'msft', ticker: 'MSFT', name: 'MICROSOFT', type: 'Action', ovr: 93, position: 'TECH', country: 'US', rarity: 'icon', broker: 'IBKR (CTO)', stats: { pac: 88, sho: 60, pas: 98, phy: 75 }, fairValue: 450, comment: "Cloud + IA.", currency: '$', price: 420 },
   { id: 'aapl', ticker: 'AAPL', name: 'APPLE', type: 'Action', ovr: 90, position: 'TECH', country: 'US', rarity: 'gold', broker: 'IBKR (CTO)', stats: { pac: 75, sho: 55, pas: 96, phy: 70 }, fairValue: 230, comment: "Cash machine.", currency: '$', price: 225 },
@@ -39,24 +36,36 @@ const MASTER_DB = [
   { id: 'tsla', ticker: 'TSLA', name: 'TESLA', type: 'Action', ovr: 85, position: 'AUTO', country: 'US', rarity: 'if', broker: 'IBKR (CTO)', stats: { pac: 95, sho: 0, pas: 70, phy: 60 }, fairValue: 220, comment: "Volatilité extrême.", currency: '$', price: 240 },
   { id: 'knsl', ticker: 'KNSL', name: 'KINSALE', type: 'Action', ovr: 89, position: 'FIN', country: 'US', rarity: 'if', broker: 'IBKR (CTO)', stats: { pac: 99, sho: 20, pas: 85, phy: 80 }, fairValue: 420, comment: "Pépite assurance.", currency: '$', price: 480 },
   { id: 'asml', ticker: 'ASML', name: 'ASML', type: 'Action', ovr: 94, position: 'TECH', country: 'NL', rarity: 'toty', broker: 'IBKR', stats: { pac: 96, sho: 45, pas: 99, phy: 65 }, fairValue: 950, comment: "Indispensable.", currency: '€', price: 750 },
-  { id: 'novo', ticker: 'NVO', name: 'NOVO NORDISK', type: 'Action', ovr: 95, position: 'MED', country: 'DK', rarity: 'toty', broker: 'IBKR', stats: { pac: 98, sho: 40, pas: 95, phy: 60 }, fairValue: 135, comment: "Leader obésité.", currency: '$', price: 110 }
+  { id: 'novo', ticker: 'NVO', name: 'NOVO NORDISK', type: 'Action', ovr: 95, position: 'MED', country: 'DK', rarity: 'toty', broker: 'IBKR', stats: { pac: 98, sho: 40, pas: 95, phy: 60 }, fairValue: 135, comment: "Leader obésité.", currency: '$', price: 110 },
+  
+  // TEST LIVE (CRYPTO)
+  { id: 'btc', ticker: 'BTC-USD', name: 'BITCOIN TEST', type: 'Crypto', ovr: 99, position: 'TEST', country: 'X', rarity: 'toty', broker: 'X', stats: { pac: 99, sho: 99, pas: 99, phy: 99 }, fairValue: null, comment: "Si le prix bouge, ça marche !", currency: '$', price: 90000 },
 ];
 
-// --- FONCTION FETCH VIA NOTRE BACKEND VERCEL ---
+// --- FONCTION FETCH YAHOO ROBUSTE (CLIENT ONLY) ---
 const fetchYahooQuotes = async (tickers) => {
   if (!tickers || tickers.length === 0) return [];
   
-  // On appelle NOTRE route /api (qui utilise yahoo-finance2)
-  // On ajoute un timestamp pour éviter le cache du navigateur
-  const apiUrl = `/api?symbols=${tickers.join(',')}&t=${Date.now()}`;
+  const symbolStr = tickers.join(',');
+  const timestamp = Date.now();
+  
+  // On utilise 'allorigins' qui est souvent plus permissif que 'corsproxy'
+  // On demande du JSON brut
+  const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbolStr}&t=${timestamp}`;
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
   
   try {
-    const response = await fetch(apiUrl);
-    if (!response.ok) throw new Error("Erreur Serveur API");
+    const response = await fetch(proxyUrl);
+    if (!response.ok) throw new Error("Erreur Proxy");
+    
     const data = await response.json();
-    return data || []; // Le serveur renvoie déjà le tableau propre
+    // AllOrigins renvoie le contenu dans data.contents (qui est une string à parser)
+    const yahooData = JSON.parse(data.contents);
+    
+    return yahooData.quoteResponse?.result || [];
   } catch (error) {
-    console.error("Erreur Fetch API Interne:", error);
+    console.error("Erreur Fetch:", error);
+    // Fallback silencieux : on renvoie un tableau vide pour ne pas casser l'app
     return [];
   }
 };
@@ -200,21 +209,24 @@ export default function ZidalnoManagerApp() {
     try {
       let allQuotes = [];
       
-      // Execute chunks sequentially
+      // Execute chunks sequentially with delay
       for (const chunk of chunks) {
         const quotes = await fetchYahooQuotes(chunk);
         allQuotes = [...allQuotes, ...quotes];
         // Small delay to be nice to the API
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
       const mergedData = MASTER_DB.map(staticPlayer => {
         const liveData = allQuotes.find(q => q.symbol === staticPlayer.ticker);
+        // On ignore les résultats vides ou buggés
+        if (!liveData || !liveData.regularMarketPrice) return staticPlayer;
+
         return {
           ...staticPlayer,
-          price: liveData?.regularMarketPrice || staticPlayer.price, 
-          changePercent: liveData?.regularMarketChangePercent || 0,
-          currency: liveData?.currency === 'EUR' ? '€' : (liveData?.currency === 'USD' ? '$' : staticPlayer.currency)
+          price: liveData.regularMarketPrice, 
+          changePercent: liveData.regularMarketChangePercent || 0,
+          currency: liveData.currency === 'EUR' ? '€' : (liveData.currency === 'USD' ? '$' : staticPlayer.currency)
         };
       });
       
@@ -328,7 +340,7 @@ export default function ZidalnoManagerApp() {
         <div className="w-full max-w-sm text-center">
           <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4 animate-pulse" />
           <h1 className="text-3xl font-black italic text-white mb-1 tracking-tighter">ZIDALNO MANAGER</h1>
-          <p className="text-slate-500 text-xs mb-8 uppercase font-bold tracking-widest">V22 • The Batch Fix</p>
+          <p className="text-slate-500 text-xs mb-8 uppercase font-bold tracking-widest">V23 • Frontend Only</p>
           <form onSubmit={(e) => { e.preventDefault(); if(passwordInput.toLowerCase() === 'zidalno') setIsAuthenticated(true); }} className="space-y-4">
             <input type="password" placeholder="PASSWORD" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 text-center text-white font-bold tracking-widest focus:border-yellow-500 outline-none" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} />
             <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-3 rounded-xl transition">ENTER CLUB</button>
