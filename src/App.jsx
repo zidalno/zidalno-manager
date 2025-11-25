@@ -3,7 +3,7 @@ import { Search, Trophy, Flame, Wallet, ArrowRight, Users, Briefcase, ArrowUpRig
 
 // --- CONFIGURATION ---
 // REMPLACEZ PAR VOTRE LIEN CSV GOOGLE SHEETS (Publié sur le web)
-const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR8sQYF8-JTD_-W_JdY-Kz8qXj8e3e7-X_X7-X7-X7-X7/pub?output=csv"; 
+const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTRudxcCXc1m-e0rKNVApV0KgoOlu3kvXQ_UN8wU5faNnHaJbP17-uOA8wr1RiE2anVkr3qgAv1JSo4/pub?gid=0&single=true&output=csv"; 
 
 const APP_CONFIG = {
   title: "ZIDALNO GOAT",
