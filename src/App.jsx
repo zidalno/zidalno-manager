@@ -194,27 +194,32 @@ const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) 
     </div>
   </div>
 
-  {/* Commentaire & Actions */}
-  <div className="mt-2 pt-2 border-t border-white/10">
-     <div className="group relative">
-        <p className="text-[9px] italic leading-tight mb-2 text-slate-300 line-clamp-2 hover:line-clamp-none cursor-help transition-all bg-black/20 p-1 rounded">
-            "{player.comment}"
-        </p>
-        {/* Tooltip au survol pour lire tout le texte */}
-        <div className="absolute bottom-full left-0 w-full bg-black text-white text-[10px] p-2 rounded hidden group-hover:block z-50 mb-1 shadow-lg border border-white/20">
-            {player.comment}
-        </div>
-     </div>
-     
-     <div className="flex gap-2 justify-center">
-      <button onClick={(e) => { e.stopPropagation(); onAddToPortfolio(player.ticker); }} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition shadow-lg hover:scale-105">
-        <PlusCircle size={10}/> Recruter
-      </button>
-      <button onClick={(e) => { e.stopPropagation(); onAddToWatchlist(player.ticker); }} className={`${isInWatchlist ? 'bg-yellow-600' : 'bg-slate-600'} hover:opacity-90 text-white px-3 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition shadow-lg`}>
-        {isInWatchlist ? <EyeOff size={10}/> : <Eye size={10}/>}
-      </button>
-    </div>
+ {/* Commentaire & Actions */}
+<div className="mt-auto pt-2 border-t border-white/10 w-full">
+   
+   {/* Zone de Commentaire avec Tooltip */}
+   <div className="relative group w-full mb-2">
+      <p className="text-[9px] italic leading-tight text-slate-300 line-clamp-2 cursor-help bg-black/20 p-1 rounded w-full">
+          "{player.comment}"
+      </p>
+      
+      {/* Tooltip qui s'affiche au dessus au survol */}
+      <div className="absolute bottom-full left-0 w-full bg-slate-900 text-white text-[10px] p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999] shadow-xl border border-white/20 mb-1">
+          {player.comment}
+      </div>
+   </div>
+   
+   {/* Boutons d'action */}
+   <div className="flex gap-2 justify-center">
+    <button onClick={(e) => { e.stopPropagation(); onAddToPortfolio(player.ticker); }} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition shadow-lg hover:scale-105">
+      <PlusCircle size={10}/> Recruter
+    </button>
+    <button onClick={(e) => { e.stopPropagation(); onAddToWatchlist(player.ticker); }} className={`${isInWatchlist ? 'bg-yellow-600' : 'bg-slate-600'} hover:opacity-90 text-white px-3 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition shadow-lg`}>
+      {isInWatchlist ? <EyeOff size={10}/> : <Eye size={10}/>}
+    </button>
   </div>
+</div>
+
 </div>}
 
 
