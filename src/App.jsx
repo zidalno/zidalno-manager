@@ -162,61 +162,61 @@ const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) 
             </div>
           </>
         ) : (
-          /* --- FACE ARRIERE (DETAILS QGDV) --- */
-          <div className="flex flex-col h-full relative z-10 p-1 animate-in fade-in duration-200">
-            <div className={`text-center text-[10px] font-black uppercase mb-2 opacity-70 ${textColor}`}>RAPPORT SCOUT</div>
-            
-            <div className="space-y-2 overflow-y-auto no-scrollbar flex-1">
-              {/* Bloc Qualité */}
-              <div className="bg-black/10 rounded p-1.5">
-                <div className="text-[9px] font-bold text-emerald-400 mb-0.5">QUALITÉ (Q)</div>
-                <div className={`flex justify-between text-[9px] ${textColor}`}><span>ROE 5ans</span><span className="font-mono">{player.roe}%</span></div>
-                <div className={`flex justify-between text-[9px] ${textColor}`}><span>Marge Nette</span><span className="font-mono">{player.margin}%</span></div>
-                <div className={`flex justify-between text-[9px] ${textColor}`}><span>Dette/EBITDA</span><span className="font-mono">{player.debt}</span></div>
-              </div>
-
-              {/* Bloc Croissance */}
-              <div className="bg-black/10 rounded p-1.5">
-                <div className="text-[9px] font-bold text-blue-400 mb-0.5">CROISSANCE (G)</div>
-                <div className={`flex justify-between text-[9px] ${textColor}`}><span>CAGR CA</span><span className="font-mono">{player.cagr_ca}%</span></div>
-                <div className={`flex justify-between text-[9px] ${textColor}`}><span>CAGR BNA</span><span className="font-mono">{player.cagr_bn}%</span></div>
-              </div>
-
-              {/* Bloc Dividende */}
-              <div className="bg-black/10 rounded p-1.5">
-                <div className="text-[9px] font-bold text-yellow-400 mb-0.5">DIVIDENDE (D)</div>
-                <div className={`flex justify-between text-[9px] ${textColor}`}><span>Rendement</span><span className="font-mono">{player.div_yield}%</span></div>
-                <div className={`flex justify-between text-[9px] ${textColor}`}><span>Croissance</span><span className="font-mono">{player.div_growth}%</span></div>
-                <div className={`flex justify-between text-[9px] ${textColor}`}><span>Payout</span><span className="font-mono">{player.payout}%</span></div>
-              </div>
-
-              {/* Bloc Valorisation */}
-              <div className="bg-black/10 rounded p-1.5">
-                <div className="text-[9px] font-bold text-purple-400 mb-0.5">VALORISATION (V)</div>
-                <div className={`flex justify-between text-[9px] ${textColor}`}><span>PER Actuel</span><span className="font-mono">{player.per}</span></div>
-                <div className={`flex justify-between text-[9px] ${textColor}`}><span>Moyenne 5a</span><span className="font-mono">{player.per_hist}</span></div>
-                <div className={`flex justify-between text-[9px] ${textColor}`}><span>Juste Val.</span><span className="font-bold">{player.fairValue}</span></div>
-              </div>
-            </div>
-
-            {/* Commentaire & Actions */}
-            <div className="mt-2 pt-2 border-t border-white/10">
-               <p className={`text-[9px] italic leading-tight mb-2 opacity-80 ${textColor} line-clamp-2`}>"{player.comment}"</p>
-               <div className="flex gap-2 justify-center">
-                <button onClick={(e) => { e.stopPropagation(); onAddToPortfolio(player.ticker); }} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition shadow-lg">
-                  <PlusCircle size={10}/> Recruter
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); onAddToWatchlist(player.ticker); }} className={`${isInWatchlist ? 'bg-yellow-600' : 'bg-slate-600'} hover:opacity-90 text-white px-3 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition shadow-lg`}>
-                  {isInWatchlist ? <EyeOff size={10}/> : <Eye size={10}/>}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* --- FACE ARRIERE (DETAILS QGDV) --- */
+<div className="flex flex-col h-full relative z-10 p-2 animate-in fade-in duration-200 text-white">
+  <div className="text-center text-[10px] font-black uppercase mb-2 opacity-70 tracking-widest">RAPPORT SCOUT</div>
+  
+  <div className="space-y-2 overflow-y-auto no-scrollbar flex-1 pr-1">
+    {/* Bloc Qualité */}
+    <div className="bg-white/10 rounded p-1.5 backdrop-blur-sm border border-white/5">
+      <div className="text-[9px] font-bold text-emerald-400 mb-0.5 flex justify-between"><span>QUALITÉ</span><span>{player.stats.pac}/20</span></div>
+      <div className="flex justify-between text-[9px] text-slate-200"><span>ROE 5a</span><span className="font-mono">{player.roe}</span></div>
+      <div className="flex justify-between text-[9px] text-slate-200"><span>Marge</span><span className="font-mono">{player.margin}</span></div>
     </div>
-  );
-};
+
+    {/* Bloc Croissance */}
+    <div className="bg-white/10 rounded p-1.5 backdrop-blur-sm border border-white/5">
+      <div className="text-[9px] font-bold text-blue-400 mb-0.5 flex justify-between"><span>CROISSANCE</span><span>{player.stats.sho}/20</span></div>
+      <div className="flex justify-between text-[9px] text-slate-200"><span>CA 5a</span><span className="font-mono">{player.cagr_ca}</span></div>
+      <div className="flex justify-between text-[9px] text-slate-200"><span>BNA 5a</span><span className="font-mono">{player.cagr_bn}</span></div>
+    </div>
+
+    {/* Bloc Valo & Div */}
+    <div className="grid grid-cols-2 gap-1">
+        <div className="bg-white/10 rounded p-1.5 border border-white/5">
+            <div className="text-[9px] font-bold text-yellow-400 mb-0.5">DIV.</div>
+            <div className="flex justify-between text-[9px] text-slate-200"><span>Rend.</span><span className="font-mono">{player.div_yield}</span></div>
+        </div>
+        <div className="bg-white/10 rounded p-1.5 border border-white/5">
+            <div className="text-[9px] font-bold text-purple-400 mb-0.5">VALO.</div>
+            <div className="flex justify-between text-[9px] text-slate-200"><span>PER</span><span className="font-mono">{player.per}</span></div>
+        </div>
+    </div>
+  </div>
+
+  {/* Commentaire & Actions */}
+  <div className="mt-2 pt-2 border-t border-white/10">
+     <div className="group relative">
+        <p className="text-[9px] italic leading-tight mb-2 text-slate-300 line-clamp-2 hover:line-clamp-none cursor-help transition-all bg-black/20 p-1 rounded">
+            "{player.comment}"
+        </p>
+        {/* Tooltip au survol pour lire tout le texte */}
+        <div className="absolute bottom-full left-0 w-full bg-black text-white text-[10px] p-2 rounded hidden group-hover:block z-50 mb-1 shadow-lg border border-white/20">
+            {player.comment}
+        </div>
+     </div>
+     
+     <div className="flex gap-2 justify-center">
+      <button onClick={(e) => { e.stopPropagation(); onAddToPortfolio(player.ticker); }} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition shadow-lg hover:scale-105">
+        <PlusCircle size={10}/> Recruter
+      </button>
+      <button onClick={(e) => { e.stopPropagation(); onAddToWatchlist(player.ticker); }} className={`${isInWatchlist ? 'bg-yellow-600' : 'bg-slate-600'} hover:opacity-90 text-white px-3 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition shadow-lg`}>
+        {isInWatchlist ? <EyeOff size={10}/> : <Eye size={10}/>}
+      </button>
+    </div>
+  </div>
+</div>}
+
 
 export default function ZidalnoManagerApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
