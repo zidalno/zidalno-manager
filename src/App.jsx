@@ -197,15 +197,12 @@ const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) 
  {/* Commentaire & Actions */}
 <div className="mt-auto pt-2 border-t border-white/10 w-full">
    
-   {/* Zone de Commentaire avec Tooltip */}
-   <div className="relative group w-full mb-2">
-      <p className="text-[9px] italic leading-tight text-slate-300 line-clamp-2 cursor-help bg-black/20 p-1 rounded w-full">
-          "{player.comment}"
-      </p>
-      
-      {/* Tooltip qui s'affiche au dessus au survol */}
-      <div className="absolute bottom-full left-0 w-full bg-slate-900 text-white text-[10px] p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999] shadow-xl border border-white/20 mb-1">
-          {player.comment}
+   {/* Zone de Commentaire SCROLLABLE */}
+   <div className="relative w-full mb-2 h-14 group">
+      <div className="absolute inset-0 overflow-y-auto no-scrollbar bg-black/20 rounded p-1.5 border border-white/5 hover:bg-black/40 transition-colors">
+          <p className="text-[9px] italic leading-snug text-slate-200">
+              "{player.comment}"
+          </p>
       </div>
    </div>
    
@@ -219,7 +216,6 @@ const FutCard = ({ player, onAddToPortfolio, onAddToWatchlist, isInWatchlist }) 
     </button>
   </div>
 </div>
-
 </div>}
 
 
