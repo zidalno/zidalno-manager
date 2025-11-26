@@ -257,20 +257,44 @@ export default function ZidalnoManagerApp() {
         liveQuotes = [...liveQuotes, ...quotes];
         await new Promise(r => setTimeout(r, 100));
       }
+            // 3. Fusionner Sheet + Live
       const mergedData = parsedPlayers.map(player => {
         const liveData = liveQuotes.find(q => q.symbol === player.ticker);
+        
+        // Force la devise correcte pour Paris/Amsterdam
+        let currency = '$';
+        if (player.ticker.includes('.PA') || player.ticker.includes('.AS') || player.ticker.includes('.MC')) currency = '€';
+        else if (liveData && liveData.currency === 'EUR') currency = '€';
+
+        // Récupération robuste du prix
+        const livePrice = liveData ? (liveData.regularMarketPrice || liveData.price) : null;
+        const finalPrice = livePrice || player.sheetPrice || player.price || 0;
+
+        // Récupération robuste de la variation (Yahoo change souvent le nom des champs)
+        const liveChange = liveData ? (
+            liveData.regularMarketChangePercent || 
+            liveData.changesPercentage || 
+            liveData.changePercent || 
+            0
+        ) : 0;
+        
+        const finalChange = liveChange || parseFloat(player.sheetChange) || 0;
+
+        // Calcul du potentiel si Juste Valeur renseignée
+        let potentialDisplay = player.potential;
+        if (player.fairValue && finalPrice > 0) {
+            const pot = ((player.fairValue - finalPrice) / finalPrice) * 100;
+            potentialDisplay = (pot > 0 ? "+" : "") + pot.toFixed(1) + "%";
+        }
+
         return {
           ...player,
-          price: liveData?.regularMarketPrice || player.sheetPrice || player.price,
-          changePercent: liveData?.regularMarketChangePercent || 0,
-          potential: player.fairValue ? (((player.fairValue - (liveData?.regularMarketPrice || player.price)) / (liveData?.regularMarketPrice || player.price)) * 100).toFixed(1) + "%" : player.potential
+          price: finalPrice,
+          changePercent: finalChange,
+          currency: currency,
+          potential: potentialDisplay
         };
       });
-      setPlayersData(mergedData);
-      setLastUpdate(new Date());
-    } catch (error) { console.error("Erreur chargement global:", error); } finally { setIsLoading(false); }
-  }, []);
-  useEffect(() => { loadData(); }, [loadData]);
 
   const removePosition = (id) => setPortfolio(portfolio.filter(pos => pos.id !== id));
   const toggleWatchlist = (ticker) => { if (watchlist.includes(ticker)) setWatchlist(watchlist.filter(t => t !== ticker)); else setWatchlist([...watchlist, ticker]); };
